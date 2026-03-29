@@ -1,7 +1,23 @@
-# Tauri + Vanilla
+# Seeker Utilities
 
-This template should help get you started developing with Tauri in vanilla HTML, CSS and Javascript.
+Seeker Utilities is a Tauri-based desktop application built with vanilla HTML, CSS and JavaScript and a Rust backend. It provides system monitoring and maintenance tools for desktop platforms.
 
-## Recommended IDE Setup
+Quick start (development):
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+1. Install Rust, Node (>=18 recommended), and Tauri prerequisites for your OS.
+2. Install Node dependencies: `npm install`.
+3. Run the app in dev mode: `npm run tauri`.
+
+Building a release:
+
+1. Ensure `node_modules` are installed (`npm ci`).
+2. Build frontend assets as appropriate for your workflow (the repo currently uses the `src/` folder as frontend assets).
+3. Build the Tauri app: `npx tauri build`.
+
+Notes:
+- Telemetry is enabled only when explicitly set in-app; review `src-tauri/src/lib.rs` and the frontend settings to understand what is sent.
+- This repository includes vendor assets in `src/` for simplicity. Consider using an explicit build step and package-managed dependencies for larger projects.
+
+Recommended editor setup:
+
+- VS Code with the Tauri extension and rust-analyzer for Rust support.

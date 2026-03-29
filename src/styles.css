@@ -232,11 +232,37 @@ body.dark-mode .text-muted {
   color: #9ca3af !important;
 }
 
+body.dark-mode .titlebar-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Reduced Animations Override */
 body.no-animations * {
   animation: none !important;
   transition: none !important;
 }
+
+/* Enterprise header */
+.content-area > .d-flex.align-items-center {
+  align-items: center;
+}
+.content-area h3 {
+  margin: 0;
+}
+
+.compact-header {
+  padding: 6px 10px;
+}
+.compact-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.06));
+  padding: 6px;
+}
+
+/* Footer trust bar */
+/* trust bar removed in simplified header design */
 
 /* Circular Progress Animation */
 .circular-chart {

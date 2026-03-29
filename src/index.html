@@ -17,17 +17,16 @@
 
   <script src="chart.umd.js" defer></script>
   <script src="bootstrap.bundle.min.js" defer></script>
-  <script type="module" src="/main.js" defer></script>
+  <script type="module" src="main.js" defer></script>
 </head>
 
 <body class="bg-custom">
-
   <div class="d-flex vh-100 overflow-hidden">
     <!-- Sidebar -->
     <nav class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 260px;">
       <a href="/" class="d-flex align-items-center mb-4 mt-2 me-md-auto text-decoration-none slide-in"
         style="color: var(--text-main);">
-        <img src="/assets/logo-94.png" alt="Logo" width="28" height="28" class="me-3 tauri-logo"
+        <img src="assets/logo-94.png" alt="Logo" width="28" height="28" class="me-3 tauri-logo"
           style="filter: invert(0.4) sepia(1) saturate(10) hue-rotate(190deg);">
         <span class="fs-5 fw-bold">Seeker Utilities</span>
       </a>
@@ -76,19 +75,24 @@
           </a>
         </li>
       </ul>
-      <div class="mt-auto w-100 pb-3">
-        <button id="open-website-btn" class="btn btn-outline-primary w-100 fw-bold shadow-sm"
-          style="border-radius: 8px;">
-          <i class="fas fa-globe me-2"></i>Visit Website
-        </button>
-      </div>
-      <div class="user-status pt-3 border-top fade-in" style="color: var(--text-muted); font-size: 0.9rem;">
-        <strong>System:</strong> <span class="text-success blink-indicator">●</span> Online
-      </div>
     </nav>
 
     <!-- Main Content Area -->
     <main class="content-area flex-grow-1 p-5 overflow-auto fade-in">
+
+      <!-- Compact Professional Header -->
+      <div class="compact-header d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-3">
+          <img src="assets/logo-94.png" alt="logo" class="compact-logo">
+          <div>
+            <div class="fw-semibold">Seeker Utilities</div>
+            <div class="text-muted small">v0.1.0</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a href="#" id="support-link" class="text-muted small">Support</a>
+        </div>
+      </div>
 
       <!-- DASHBOARD TAB -->
       <section id="dashboard" class="spa-tab active">
@@ -176,17 +180,30 @@
             </div>
           </div>
           <div class="col-md-4">
-            <div class="glass-card stat-card p-4 h-100">
-              <h6 class="text-muted text-uppercase mb-2 fw-semibold">Local Traffic</h6>
+          <div class="glass-card stat-card p-4 h-100">
+            <h6 class="text-muted text-uppercase mb-2 fw-semibold">Local Traffic</h6>
               <div class="d-flex justify-content-between align-items-center mt-3 pt-1">
-                <div style="color: #10b981;"><i class="fas fa-arrow-down me-2 opacity-75"></i><span id="net-down"
-                    class="fw-bold">0 KB/s</span></div>
-                <div style="color: #6366f1;"><i class="fas fa-arrow-up me-2 opacity-75"></i><span id="net-up"
-                    class="fw-bold">0 KB/s</span></div>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="net-direction-switch">
+                  </div>
+                  <div id="net-direction-label" class="text-muted small">In</div>
+                </div>
+                <div>
+                  <div style="color: #10b981;"><i class="fas fa-arrow-down me-2 opacity-75"></i><span id="net-down"
+                      class="fw-bold">0 KB/s</span></div>
+                  <div style="color: #6366f1;"><i class="fas fa-arrow-up me-2 opacity-75"></i><span id="net-up"
+                      class="fw-bold">0 KB/s</span></div>
+                </div>
+              </div>
+              <div class="chart-container mt-3" style="position: relative; width:100%; height: 70px;">
+                <canvas id="netChart"></canvas>
               </div>
             </div>
           </div>
         </div>
+
+        <!--- Add info boxes here --->
 
       </section>
 
@@ -424,10 +441,16 @@
                     manager to explicitly fetch and install all system upgrades securely inside an embedded streaming
                     architecture.</p>
                 </div>
-                <button id="run-os-update-btn" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm"
-                  style="transition: all 0.3s ease;">
-                  <i class="fas fa-hammer me-2"></i>Upgrade OS
-                </button>
+                <div class="d-flex gap-2">
+                  <button id="clear-os-console-btn" class="btn btn-outline-secondary fw-bold px-3 rounded-pill shadow-sm"
+                    style="transition: all 0.3s ease;">
+                    <i class="fas fa-eraser me-2"></i>Clear
+                  </button>
+                  <button id="run-os-update-btn" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm"
+                    style="transition: all 0.3s ease;">
+                    <i class="fas fa-hammer me-2"></i>Upgrade OS
+                  </button>
+                </div>
               </div>
 
               <!-- Native Output Terminal -->
@@ -435,13 +458,7 @@
                 style="background-color: #0d1117; border: 1px solid #30363d; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
                 <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between"
                   style="border-color: #30363d !important; background-color: #161b22;">
-                  <span class="text-muted fw-bold" style="font-size: 0.8rem; letter-spacing: 1px;">NATIVE
-                    SYS-TERM</span>
-                  <div class="d-flex gap-2">
-                    <div class="rounded-circle" style="width: 10px; height: 10px; background-color: #ff5f56;"></div>
-                    <div class="rounded-circle" style="width: 10px; height: 10px; background-color: #ffbd2e;"></div>
-                    <div class="rounded-circle" style="width: 10px; height: 10px; background-color: #27c93f;"></div>
-                  </div>
+                  <span class="text-muted fw-bold" style="font-size: 0.8rem; letter-spacing: 1px;">System Update</span>
                 </div>
                 <pre id="os-updater-console" class="p-3 mb-0 text-success"
                   style="height: 350px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.4; white-space: pre-wrap;"></pre>
@@ -449,13 +466,13 @@
                   <div class="spinner-grow spinner-grow-sm text-success" role="status"></div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
       </section>
 
     </main>
+    
   </div>
 
   <!-- Safety Action Modal -->

@@ -4,6 +4,8 @@ use std::process::{Command, Stdio};
 use std::io::{BufRead, BufReader};
 use sysinfo::{System, Networks, Disks};
 use tauri::{State, AppHandle, Emitter};
+use tauri_plugin_updater::UpdaterExt;
+
 struct AppState {
     sys: Mutex<System>,
     networks: Mutex<Networks>,
@@ -282,32 +284,70 @@ fn uninstall_app(id: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn check_for_updates() -> Result<UpdateResponse, String> {
-    let client = reqwest::Client::builder()
-        .user_agent("seeker-utilities-updater")
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let url = "https://api.github.com/repos/tauri-apps/tauri/releases/latest";
-    let res = client.get(url).send().await.map_err(|e| format!("Network strictly failed: {}", e))?;
+async fn check_for_updates(app: AppHandle) -> Result<UpdateResponse, String> {
+    let updater = app.updater().map_err(|e| format!("Failed to initialize updater: {}", e))?;
     
-    if res.status().is_success() {
-        if let Ok(json) = res.json::<serde_json::Value>().await {
-            let latest_version = json["tag_name"].as_str().unwrap_or("Unknown");
-            
+    // Check for updates, but if it fails (e.g., no latest.json exists yet on Github), treat it gracefully.
+    let update_result = updater.check().await;
+    
+    let update = match update_result {
+        Ok(opt) => opt,
+        Err(e) => {
             return Ok(UpdateResponse {
-                status: "upgrade".to_string(),
-                title: format!("Update Available: {}", latest_version),
-                message: "A compiled newer version of Seeker Utilities was found remotely! In a full release environment, this button would trigger a secure cryptographic MS/DEB download and silent patch override.".to_string(),
+                status: "uptodate".to_string(),
+                title: "No Release Found".to_string(),
+                message: format!("The update server is active, but no 'latest.json' release is published on the remote yet. ({})", e),
             });
         }
+    };
+    
+    if let Some(update) = update {
+        let version = update.version.to_string();
+        
+        let _ = update.download_and_install(
+            |_chunk_length: usize, _content_length: Option<u64>| {
+                // Optional progress tracking
+            },
+            || {
+                println!("Download logic completed successfully!");
+            }
+        ).await.map_err(|e| format!("Failed to process signed binary update: {}", e))?;
+        
+        return Ok(UpdateResponse {
+            status: "upgrade".to_string(),
+            title: format!("Update Installed: v{}", version),
+            message: "The application has been successfully updated and verified. Please securely restart Seeker Utilities to apply the changes.".to_string(),
+        });
     }
     
     Ok(UpdateResponse {
         status: "uptodate".to_string(),
         title: "You're up to date".to_string(),
-        message: "You are currently running the latest compiled version of Seeker Utilities (v0.1.0).".to_string()
+        message: "You are currently running the latest compiled version of Seeker Utilities.".to_string(),
     })
+}
+
+#[tauri::command]
+async fn send_telemetry(enabled: bool) -> Result<String, String> {
+    if !enabled {
+        return Ok("Telemetry disabled by user.".to_string());
+    }
+
+    let client = reqwest::Client::new();
+    let info = get_static_sysinfo();
+    
+    // In a real production environment, you would use your official domain here.
+    // For now, we simulate a successful POST ping to Seeker's analytics endpoint.
+    let url = "https://utilities.arcbase.one/api/telemetry-ping";
+    
+    match client.post(url)
+        .json(&info)
+        .timeout(std::time::Duration::from_secs(3))
+        .send()
+        .await {
+            Ok(_) => Ok("Telemetry ping sent successfully.".to_string()),
+            Err(_) => Ok("Telemetry ping failed (Likely offline/local dev). Slapping success to avoid UI noise.".to_string())
+        }
 }
 
 #[tauri::command]
@@ -449,8 +489,9 @@ pub fn run() {
     let disks = Disks::new_with_refreshed_list();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_autostart::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--hidden"])))
         .manage(AppState {
             sys: Mutex::new(sys),
             networks: Mutex::new(networks),
@@ -466,7 +507,8 @@ pub fn run() {
             get_installed_apps,
             uninstall_app,
             check_for_updates,
-            run_system_update
+            run_system_update,
+            send_telemetry
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

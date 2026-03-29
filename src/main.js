@@ -5,6 +5,11 @@ const { listen } = window.__TAURI__.event;
 let currentTab = 'dashboard';
 let cpuChart;
 let dataPollInterval;
+let netChart;
+let prevNetRx = null;
+let prevNetTx = null;
+let prevNetTs = null;
+let netView = 'in';
 
 // Format Utils
 function formatBytes(bytes) {
@@ -13,6 +18,14 @@ function formatBytes(bytes) {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Format bytes-per-second into human string
+function formatBps(bps) {
+  if (!isFinite(bps) || bps <= 0) return '0 B/s';
+  if (bps >= 1048576) return (bps / 1048576).toFixed(1) + ' MB/s';
+  if (bps >= 1024) return (bps / 1024).toFixed(1) + ' KB/s';
+  return Math.round(bps) + ' B/s';
 }
 
 // Chart Initialization
@@ -103,9 +116,38 @@ async function updateMetrics() {
     document.getElementById('disk-bar').style.width = `${metrics.disk_total ? (metrics.disk_used / metrics.disk_total) * 100 : 0}%`;
 
     const downBps = metrics.net_rx / 2.5;
-    const upBps = metrics.net_tx / 2.5;
-    document.getElementById('net-down').textContent = downBps > 1048576 ? `${(downBps / 1048576).toFixed(1)} MB/s` : `${(downBps / 1024).toFixed(1)} KB/s`;
-    document.getElementById('net-up').textContent = upBps > 1048576 ? `${(upBps / 1048576).toFixed(1)} MB/s` : `${(upBps / 1024).toFixed(1)} KB/s`;
+    // Compute bytes-per-second using previous samples
+    const now = Date.now();
+    let bpsDown = 0;
+    let bpsUp = 0;
+    if (prevNetRx !== null && prevNetTs !== null) {
+      const dt = (now - prevNetTs) / 1000.0;
+      if (dt > 0) {
+        bpsDown = Math.max(0, (metrics.net_rx - prevNetRx) / dt);
+        bpsUp = Math.max(0, (metrics.net_tx - prevNetTx) / dt);
+      }
+    }
+    prevNetRx = metrics.net_rx;
+    prevNetTx = metrics.net_tx;
+    prevNetTs = now;
+
+    document.getElementById('net-down').textContent = formatBps(bpsDown);
+    document.getElementById('net-up').textContent = formatBps(bpsUp);
+
+    // Update network chart depending on netView
+    if (netChart) {
+      const dataset = netChart.data.datasets[0].data;
+      dataset.shift();
+      dataset.push(netView === 'in' ? bpsDown : bpsUp);
+      // Update dataset color based on view
+      if (netView === 'in') {
+        netChart.data.datasets[0].borderColor = '#10b981';
+        netChart.data.datasets[0].backgroundColor = netChart.data.datasets[0].backgroundColor; // keep as-is
+      } else {
+        netChart.data.datasets[0].borderColor = '#6366f1';
+      }
+      netChart.update();
+    }
 
     // Calculate dynamic Seeker Score
     const swapPercent = (metrics.used_swap / (metrics.total_swap || 1)) * 100;
@@ -118,7 +160,7 @@ async function updateMetrics() {
     let scoreColorClass = 'text-primary-gradient';
     let strokeColor = 'var(--primary-color)';
 
-    let memChart;
+    // no-op local; memChart is a module-level chart variable declared later
 
     if (score < 50 || metrics.cpu_usage > 90 || memPercent > 90) {
       stateText = 'Critical System Load';
@@ -233,10 +275,12 @@ async function loadInstalledApps() {
 
     document.querySelectorAll('.uninstall-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const id = e.target.getAttribute('data-id');
+        // Use the button element directly (avoid e.target which may be an inner node)
+        const button = e.currentTarget;
+        const id = button.getAttribute('data-id');
         promptSafetyModal(`Are you absolutely sure you want to completely uninstall this? This will execute an irrevocable root <code>apt-get remove -y</code> logic block natively.`, async () => {
-          e.target.disabled = true;
-          e.target.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+          button.disabled = true;
+          button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
           try {
             await invoke("uninstall_app", { pkg: id }); // Using generic id because dpkg name map applies.
@@ -250,8 +294,8 @@ async function loadInstalledApps() {
             }, 800);
           } catch (err) {
             console.error(err);
-            e.target.disabled = false;
-            e.target.innerHTML = 'Uninstall';
+            button.disabled = false;
+            button.innerHTML = 'Uninstall';
           }
         });
       });
@@ -292,6 +336,8 @@ function promptSafetyModal(message, callback) {
 window.addEventListener("DOMContentLoaded", async () => {
   initChart();
   initMemoryChart();
+  initNetChart();
+  initTitlebar();
 
   // Start polling
   pollData();
@@ -475,9 +521,13 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   const teleEl = document.getElementById('setting-telemetry');
   if (teleEl) {
-    teleEl.checked = localStorage.getItem('setting-telemetry') === 'true';
-    teleEl.addEventListener('change', (e) => {
+    const isEnabled = localStorage.getItem('setting-telemetry') === 'true';
+    teleEl.checked = isEnabled;
+    teleEl.addEventListener('change', async (e) => {
       localStorage.setItem('setting-telemetry', e.target.checked.toString());
+      try {
+        await invoke("send_telemetry", { enabled: e.target.checked });
+      } catch (err) { console.error("Telemetry toggle error:", err); }
     });
   }
 
@@ -521,6 +571,12 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
   });
 
+  // Clear OS Console
+  document.getElementById('clear-os-console-btn')?.addEventListener('click', () => {
+    const consoleNode = document.getElementById('os-updater-console');
+    if (consoleNode) consoleNode.innerHTML = '<span class="text-muted">Terminal output cleared.</span>\n<br>';
+  });
+
   // Map Global Async Terminal Events
   if (window.__TAURI__ && window.__TAURI__.event) {
     listen('os-update-log', (event) => {
@@ -559,6 +615,49 @@ window.addEventListener("DOMContentLoaded", async () => {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-cloud-arrow-down me-2"></i>Check for Updates';
     }
+  });
+
+  // Initial Telemetry Ping on Load
+  const teleOnLoad = localStorage.getItem('setting-telemetry') === 'true';
+  if (teleOnLoad) {
+    invoke("send_telemetry", { enabled: true }).catch(err => console.error("Boot telemetry failed:", err));
+  }
+
+  // Wire enterprise header links and version display
+  try {
+    const versionEl = document.getElementById('app-version');
+    if (versionEl && window.__TAURI__?.app) {
+      // Attempt to read the package version from the Tauri context (fallback to package.json value)
+      try {
+        const info = await window.__TAURI__.app.getTauriVersion();
+        // app.getTauriVersion returns a version map; keep existing display if not present
+      } catch (e) {
+        // no-op fallback
+    }
+  }
+
+  // Net direction switch
+  const netSwitch = document.getElementById('net-direction-switch');
+  if (netSwitch) {
+    const netLabel = document.getElementById('net-direction-label');
+    // initialize label state
+    if (netLabel) netLabel.textContent = netSwitch.checked ? 'Out' : 'In';
+    netSwitch.addEventListener('change', (e) => {
+      netView = e.target.checked ? 'out' : 'in';
+      if (netLabel) netLabel.textContent = netView === 'in' ? 'In' : 'Out';
+      // update chart color immediately
+      if (netChart) {
+        netChart.data.datasets[0].borderColor = netView === 'in' ? '#10b981' : '#6366f1';
+        netChart.update();
+      }
+    });
+  }
+  } catch (e) { /* silence harmless errors while trying to enhance header */ }
+
+  document.getElementById('support-link')?.addEventListener('click', (evt) => {
+    evt.preventDefault();
+    // Open the support page (uses opener plugin and falls back to window.open)
+    invoke("plugin:opener|open_url", { url: "https://utilities.arcbase.one/support" }).catch(() => window.open("https://utilities.arcbase.one/support", "_blank"));
   });
 });
 
@@ -615,6 +714,61 @@ function initMemoryChart() {
       }
     }
   });
+}
+
+function initNetChart() {
+  const ctx = document.getElementById('netChart').getContext('2d');
+  const gradientIn = ctx.createLinearGradient(0, 0, 0, 120);
+  gradientIn.addColorStop(0, 'rgba(16,185,129,0.25)');
+  gradientIn.addColorStop(1, 'rgba(16,185,129,0)');
+
+  const gradientOut = ctx.createLinearGradient(0, 0, 0, 120);
+  gradientOut.addColorStop(0, 'rgba(99,102,241,0.25)');
+  gradientOut.addColorStop(1, 'rgba(99,102,241,0)');
+
+  netChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: Array(20).fill(''),
+      datasets: [{
+        label: 'Net (B/s)',
+        data: Array(20).fill(0),
+        borderColor: netView === 'in' ? '#10b981' : '#6366f1',
+        backgroundColor: netView === 'in' ? gradientIn : gradientOut,
+        borderWidth: 2,
+        tension: 0.3,
+        fill: true,
+        pointRadius: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 0 },
+      scales: { y: { min: 0, ticks: { color: '#64748b' } }, x: { display: false } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function initTitlebar() {
+  if (window.__TAURI__?.window) {
+    try {
+      const { getCurrentWindow } = window.__TAURI__.window;
+      const appWindow = getCurrentWindow();
+
+      document.getElementById('titlebar-minimize')?.addEventListener('click', () => appWindow.minimize());
+      document.getElementById('titlebar-maximize')?.addEventListener('click', () => appWindow.toggleMaximize());
+      document.getElementById('titlebar-close')?.addEventListener('click', () => appWindow.close());
+      console.log("Seeker Utilities: Custom Titlebar initialized.");
+    } catch (err) {
+      console.error("Tauri: Window Controls Hook failed", err);
+    }
+  } else {
+    // Hide controls if not in Tauri
+    const controls = document.querySelector('.titlebar-controls');
+    if (controls) controls.style.display = 'none';
+  }
 }
 
 // Call this function whenever you fetch new memory data
