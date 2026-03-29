@@ -1,0 +1,258 @@
+/* Sharp Professional Light Blue Theme */
+:root {
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg-color: #f1f5f9;
+  --card-bg: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --sidebar-w: 260px;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+}
+
+.bg-custom {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  min-height: 100vh;
+}
+
+/* Sidebar & General Layout */
+.sidebar {
+  background: var(--card-bg);
+  border-right: 1px solid var(--border-color);
+  z-index: 2;
+}
+
+.content-area {
+  z-index: 1;
+}
+
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  /* Removed neon/heavy shadows, leaving a sharp crisp card */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card.stat-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
+}
+
+/* Typography */
+.text-primary-gradient {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Nav Item Styling */
+.nav-pills .nav-link {
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.nav-pills .nav-link i {
+  width: 24px;
+  text-align: center;
+}
+
+.nav-pills .nav-link:hover {
+  background: #f8fafc;
+  color: var(--text-main);
+}
+
+.nav-pills .nav-link.active {
+  background-color: #eff6ff;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Progress Bars */
+.progress {
+  border-radius: 4px;
+  background-color: #e2e8f0;
+  overflow: hidden;
+}
+.custom-progress {
+  background-color: var(--primary-color);
+  transition: width 0.4s ease-in-out;
+}
+.bg-info {
+  background-color: #0ea5e9 !important;
+}
+
+/* Table Design */
+.custom-table {
+  vertical-align: middle;
+  border-collapse: collapse;
+}
+
+.bg-gradient-header {
+  background-color: #f8fafc;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.custom-table thead th {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+  padding: 12px 16px;
+}
+
+.custom-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.custom-table tbody td {
+  padding: 12px 16px;
+  color: var(--text-main);
+}
+
+.custom-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Buttons */
+.custom-btn {
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+  color: white;
+}
+
+.custom-btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.custom-alert {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  border-radius: 6px;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+.slide-in {
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.blink-indicator {
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+/* Light Theme Overrides for Bootstrap Table classes */
+.table-dark {
+  background: white;
+  color: var(--text-main);
+}
+
+/* Dark Theme Overrides */
+body.dark-mode {
+  --bg-color: #121212;
+  --card-bg: #1c1c1c;
+  --border-color: #333333;
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+}
+
+body.dark-mode .nav-pills .nav-link:hover {
+  background-color: #2a2a2a;
+  color: #fff;
+}
+
+body.dark-mode .nav-pills .nav-link.active {
+  background-color: rgba(37, 99, 235, 0.2);
+}
+
+body.dark-mode .bg-gradient-header {
+  background-color: #121212;
+}
+
+body.dark-mode .custom-table {
+  background-color: #000 !important;
+}
+
+body.dark-mode .custom-table tbody tr {
+  background-color: #000 !important;
+}
+
+body.dark-mode .custom-table tbody tr:hover {
+  background-color: #1a1a1a !important;
+}
+
+body.dark-mode .progress {
+  background-color: #2a2a2a;
+}
+
+body.dark-mode .text-dark {
+  color: #f9fafb !important;
+}
+
+body.dark-mode .text-secondary,
+body.dark-mode .text-muted {
+  color: #9ca3af !important;
+}
+
+/* Reduced Animations Override */
+body.no-animations * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Circular Progress Animation */
+.circular-chart {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+.circle-bg {
+  fill: none;
+  stroke: var(--border-color);
+  stroke-width: 3.5;
+}
+.circle {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s ease-in-out, stroke 0.4s ease;
+}
