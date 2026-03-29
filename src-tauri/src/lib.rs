@@ -10,6 +10,8 @@ struct AppState {
     sys: Mutex<System>,
     networks: Mutex<Networks>,
     disks: Mutex<Disks>,
+    // Optionally holds a child process for diagnostics tailing
+    diag_child: Mutex<Option<std::process::Child>>,
 }
 
 #[derive(Serialize)]
@@ -234,6 +236,77 @@ fn get_advanced_sysinfo(state: State<'_, AppState>) -> Result<serde_json::Value,
         "used_memory": used_memory,
         "process_count": proc_count
     }))
+}
+
+#[tauri::command]
+fn start_log_tail(app: AppHandle, state: State<'_, AppState>, unit: Option<String>) -> Result<String, String> {
+    // Start a background journalctl -f process and emit lines to frontend
+    let mut sys = state.sys.lock().map_err(|e| format!("Lock error: {}", e))?;
+
+    // If a child is already running, return
+    {
+        let mut guard = state.diag_child.lock().map_err(|e| format!("Lock error: {}", e))?;
+        if guard.is_some() {
+            return Err("Diagnostics already running".into());
+        }
+    }
+
+    let cmd = if unit.is_some() {
+        format!("journalctl -u {} -f --no-pager", unit.unwrap())
+    } else {
+        "journalctl -f --no-pager".to_string()
+    };
+
+    let mut child = Command::new("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to spawn journalctl: {}", e))?;
+
+    if let Some(stdout) = child.stdout.take() {
+        let app_clone = app.clone();
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stdout);
+            for line in reader.lines() {
+                if let Ok(l) = line {
+                    let _ = app_clone.emit("diag-log", l);
+                }
+            }
+        });
+    }
+
+    if let Some(stderr) = child.stderr.take() {
+        let app_clone = app.clone();
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                if let Ok(l) = line {
+                    let _ = app_clone.emit("diag-log", format!("ERR > {}", l));
+                }
+            }
+        });
+    }
+
+    // Store child in state so we can stop it later
+    {
+        let mut guard = state.diag_child.lock().map_err(|e| format!("Lock error: {}", e))?;
+        *guard = Some(child);
+    }
+
+    Ok("Diagnostics tail started".into())
+}
+
+#[tauri::command]
+fn stop_log_tail(state: State<'_, AppState>) -> Result<String, String> {
+    let mut guard = state.diag_child.lock().map_err(|e| format!("Lock error: {}", e))?;
+    if let Some(mut child) = guard.take() {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Ok("Diagnostics stopped".into());
+    }
+    Err("No diagnostics process running".into())
 }
 
 #[tauri::command]
@@ -637,6 +710,7 @@ pub fn run() {
             sys: Mutex::new(sys),
             networks: Mutex::new(networks),
             disks: Mutex::new(disks),
+            diag_child: Mutex::new(None),
         })
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
@@ -654,6 +728,9 @@ pub fn run() {
             run_advanced_cmd,
             get_sysctl,
             set_sysctl
+            ,
+            start_log_tail,
+            stop_log_tail
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

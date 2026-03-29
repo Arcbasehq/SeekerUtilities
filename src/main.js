@@ -311,8 +311,8 @@ async function loadInstalledApps() {
           button.disabled = true;
           button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
 
-          try {
-            await invoke("uninstall_app", { pkg: id }); // Using generic id because dpkg name map applies.
+            try {
+            await invoke("uninstall_app", { id }); // Using generic id because dpkg name map applies.
             setTimeout(() => {
               const row = document.getElementById(`row-${id}`);
               if (row) row.remove();
@@ -650,6 +650,16 @@ window.addEventListener("DOMContentLoaded", async () => {
         out.scrollTop = out.scrollHeight;
       }
     });
+    // Diagnostics log streaming
+    listen('diag-log', (event) => {
+      const out = document.getElementById('diag-log-output');
+      if (out) {
+        const span = document.createElement('div');
+        span.innerText = event.payload;
+        out.appendChild(span);
+        out.scrollTop = out.scrollHeight;
+      }
+    });
   }
 
   // Update Checker
@@ -734,6 +744,33 @@ window.addEventListener("DOMContentLoaded", async () => {
         await invoke('run_advanced_cmd', { cmd, use_root: useRoot });
       } catch (e) {
         if (out) out.textContent += 'Error: ' + e + '\n';
+      }
+    });
+  }
+
+  // Diagnostics start/stop
+  const diagStart = document.getElementById('diag-start');
+  const diagStop = document.getElementById('diag-stop');
+  if (diagStart) {
+    diagStart.addEventListener('click', async () => {
+      const unit = document.getElementById('diag-unit').value.trim();
+      const out = document.getElementById('diag-log-output');
+      if (out) out.textContent = 'Starting...\n';
+      try {
+        await invoke('start_log_tail', { unit: unit || null });
+      } catch (e) {
+        if (out) out.textContent += 'Error starting diagnostics: ' + e + '\n';
+      }
+    });
+  }
+  if (diagStop) {
+    diagStop.addEventListener('click', async () => {
+      const out = document.getElementById('diag-log-output');
+      try {
+        const resp = await invoke('stop_log_tail');
+        if (out) out.textContent += resp + '\n';
+      } catch (e) {
+        if (out) out.textContent += 'Error stopping diagnostics: ' + e + '\n';
       }
     });
   }

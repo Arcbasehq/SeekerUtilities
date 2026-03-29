@@ -400,8 +400,13 @@
         <h2 class="fw-bold mb-2">Diagnostics</h2>
         <p class="text-muted mb-4">Low-level diagnostic utilities for troubleshooting and logs.</p>
         <div class="glass-card p-4">
-          <h6 class="fw-bold">System Logs</h6>
-          <pre class="p-3" style="height:200px; overflow:auto; background:#0f172a; color:#d1fae5; border-radius:6px;">No logs available in this demo.</pre>
+          <h6 class="fw-bold">Live System Logs (journalctl)</h6>
+          <div class="d-flex gap-2 mb-2">
+            <input id="diag-unit" class="form-control" placeholder="Optional systemd unit (e.g. ssh.service)">
+            <button id="diag-start" class="btn btn-primary">Start</button>
+            <button id="diag-stop" class="btn btn-outline-secondary">Stop</button>
+          </div>
+          <pre id="diag-log-output" class="p-3" style="height:320px; overflow:auto; background:#0f172a; color:#d1fae5; border-radius:6px;">Logs will appear here when started.</pre>
         </div>
       </section>
 
