@@ -51,6 +51,15 @@ struct MockApp {
 }
 
 #[derive(Serialize)]
+struct DiskInfo {
+    name: String,
+    mount_point: String,
+    total_space: u64,
+    available_space: u64,
+    file_system: String,
+}
+
+#[derive(Serialize)]
 struct UpdateResponse {
     status: String,
     title: String,
@@ -184,6 +193,47 @@ fn get_static_sysinfo() -> StaticSysInfo {
         cpu_cores: cpus.len(),
         hostname: System::host_name().unwrap_or_else(|| "Localhost".to_string()),
     }
+}
+
+#[tauri::command]
+fn get_advanced_sysinfo(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let mut sys = state.sys.lock().map_err(|e| format!("Lock error: {}", e))?;
+    sys.refresh_all();
+
+    // CPUs
+    let cpus: Vec<serde_json::Value> = sys.cpus().iter().map(|c| {
+        serde_json::json!({
+            "brand": c.brand(),
+            "frequency": c.frequency(),
+            "vendor_id": c.vendor_id(),
+        })
+    }).collect();
+
+    // Disks
+    let mut disks_lock = state.disks.lock().map_err(|e| format!("Disk lock error: {}", e))?;
+    disks_lock.refresh(true);
+    let disks: Vec<DiskInfo> = disks_lock.list().iter().map(|d| DiskInfo {
+        name: d.name().to_string_lossy().into_owned(),
+        mount_point: d.mount_point().to_string_lossy().into_owned(),
+        total_space: d.total_space(),
+        available_space: d.available_space(),
+        file_system: d.file_system().to_string_lossy().into_owned(),
+    }).collect();
+
+    // Memory
+    let total_memory = sys.total_memory();
+    let used_memory = sys.used_memory();
+
+    // Processes count
+    let proc_count = sys.processes().len();
+
+    Ok(serde_json::json!({
+        "cpus": cpus,
+        "disks": disks,
+        "total_memory": total_memory,
+        "used_memory": used_memory,
+        "process_count": proc_count
+    }))
 }
 
 #[tauri::command]
@@ -479,6 +529,97 @@ async fn run_system_update(app: AppHandle) -> Result<String, String> {
     }
 }
 
+#[tauri::command]
+fn run_advanced_cmd(app: AppHandle, cmd: String, use_root: bool) -> Result<String, String> {
+    #[cfg(not(any(target_os = "windows")))]
+    {
+        let mut child = if use_root {
+            Command::new("pkexec")
+                .arg("sh")
+                .arg("-c")
+                .arg(&cmd)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .map_err(|e| format!("Failed to spawn privileged command: {}", e))?
+        } else {
+            Command::new("sh")
+                .arg("-c")
+                .arg(&cmd)
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .map_err(|e| format!("Failed to spawn command: {}", e))?
+        };
+
+        if let Some(stdout) = child.stdout.take() {
+            let app_clone = app.clone();
+            std::thread::spawn(move || {
+                let reader = BufReader::new(stdout);
+                for line in reader.lines() {
+                    if let Ok(l) = line {
+                        let _ = app_clone.emit("advanced-log", l);
+                    }
+                }
+            });
+        }
+
+        if let Some(stderr) = child.stderr.take() {
+            let app_clone = app.clone();
+            std::thread::spawn(move || {
+                let reader = BufReader::new(stderr);
+                for line in reader.lines() {
+                    if let Ok(l) = line {
+                        let _ = app_clone.emit("advanced-log", format!("ERR > {}", l));
+                    }
+                }
+            });
+        }
+
+        let status = child.wait().map_err(|e| format!("Failed waiting for command: {}", e))?;
+        if status.success() {
+            Ok("Command completed.".into())
+        } else {
+            Err("Command returned non-zero status.".into())
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        Err("Advanced command execution is not implemented on Windows in this build.".into())
+    }
+}
+
+#[tauri::command]
+fn get_sysctl(key: String) -> Result<String, String> {
+    let output = Command::new("sysctl")
+        .arg("-n")
+        .arg(&key)
+        .output();
+
+    match output {
+        Ok(out) if out.status.success() => Ok(String::from_utf8_lossy(&out.stdout).trim().to_string()),
+        Ok(out) => Err(String::from_utf8_lossy(&out.stderr).to_string()),
+        Err(e) => Err(format!("Failed to run sysctl: {}", e)),
+    }
+}
+
+#[tauri::command]
+fn set_sysctl(key: String, value: String) -> Result<String, String> {
+    let cmd = format!("sysctl -w {}={}", key, value);
+    let output = Command::new("pkexec")
+        .arg("sh")
+        .arg("-c")
+        .arg(&cmd)
+        .output();
+
+    match output {
+        Ok(out) if out.status.success() => Ok(String::from_utf8_lossy(&out.stdout).trim().to_string()),
+        Ok(out) => Err(String::from_utf8_lossy(&out.stderr).to_string()),
+        Err(e) => Err(format!("Failed to set sysctl: {}", e)),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut sys = System::new();
@@ -503,12 +644,16 @@ pub fn run() {
             get_processes,
             run_maintenance,
             get_static_sysinfo,
+            get_advanced_sysinfo,
             run_booster,
             get_installed_apps,
             uninstall_app,
             check_for_updates,
             run_system_update,
-            send_telemetry
+            send_telemetry,
+            run_advanced_cmd,
+            get_sysctl,
+            set_sysctl
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

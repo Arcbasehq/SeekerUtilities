@@ -219,6 +219,35 @@ async function updateMetrics() {
   }
 }
 
+async function loadAdvancedSysInfo() {
+  try {
+    const info = await invoke('get_advanced_sysinfo');
+    // Render home summary
+    const home = document.getElementById('adv-home-summary');
+    if (home) {
+      const procCount = info.process_count || 0;
+      const memUsed = info.used_memory || 0;
+      const memTotal = info.total_memory || 0;
+      home.textContent = `Processes: ${procCount} · Memory: ${(memUsed/1024/1024).toFixed(1)}MB / ${(memTotal/1024/1024).toFixed(1)}MB`;
+    }
+
+    const disksEl = document.getElementById('adv-disks');
+    if (disksEl) {
+      const disks = info.disks || [];
+      if (disks.length === 0) {
+        disksEl.textContent = 'No disk information available.';
+      } else {
+        disksEl.innerHTML = disks.map(d => {
+          const used = d.total_space - d.available_space;
+          return `${d.name} (${d.mount_point}) — ${ (used/1024/1024).toFixed(1) } MB used of ${ (d.total_space/1024/1024).toFixed(1) } MB`;
+        }).join('<br>');
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load advanced sysinfo:', e);
+  }
+}
+
 async function updateProcesses() {
   try {
     const processes = await invoke("get_processes");
@@ -396,7 +425,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       try {
         const resp = await invoke("run_maintenance");
         setTimeout(() => {
-          msg.textContent = resp;
+          msg.innerHTML = `<i class="fas fa-check-circle"></i> <span>${resp}</span>`;
           alertBox.className = "alert mt-4 custom-alert alert-success mx-auto";
           alertBox.classList.remove('d-none');
           btn.innerHTML = 'Clean Cache Files';
@@ -406,7 +435,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         }, 800);
       } catch (e) {
         console.error(e);
-        msg.textContent = e;
+        msg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <span>${e}</span>`;
         alertBox.className = "alert mt-4 custom-alert alert-danger mx-auto";
         alertBox.classList.remove('d-none');
         btn.disabled = false;
@@ -428,7 +457,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       try {
         const resp = await invoke("run_booster");
         setTimeout(() => {
-          msg.textContent = resp;
+          msg.innerHTML = `<i class="fas fa-bolt"></i> <span>${resp}</span>`;
           alertBox.className = "alert alert-success mt-4 custom-alert mx-auto";
           btn.innerHTML = 'Boost Performance';
           btn.disabled = false;
@@ -436,7 +465,7 @@ window.addEventListener("DOMContentLoaded", async () => {
           setTimeout(() => alertBox.classList.add('d-none'), 4000);
         }, 1000);
       } catch (e) {
-        msg.textContent = e;
+        msg.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${e}</span>`;
         alertBox.className = "alert alert-danger mt-4 custom-alert mx-auto";
         alertBox.classList.remove('d-none');
         btn.disabled = false;
@@ -531,6 +560,28 @@ window.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  // Advanced Mode toggle (power-user features)
+  const advEl = document.getElementById('setting-advanced');
+  const applyAdvancedMode = (enabled) => {
+    document.querySelectorAll('.advanced-only').forEach(el => {
+      if (enabled) el.classList.remove('d-none');
+      else el.classList.add('d-none');
+    });
+  };
+
+  if (advEl) {
+    const isAdv = localStorage.getItem('setting-advanced') === 'true';
+    advEl.checked = isAdv;
+    applyAdvancedMode(isAdv);
+    advEl.addEventListener('change', (e) => {
+      const on = e.target.checked;
+      localStorage.setItem('setting-advanced', on.toString());
+      applyAdvancedMode(on);
+      if (on) loadAdvancedSysInfo();
+    });
+    if (isAdv) loadAdvancedSysInfo();
+  }
+
   // Open Website
   document.getElementById('open-website-btn')?.addEventListener('click', async () => {
     try {
@@ -589,6 +640,16 @@ window.addEventListener("DOMContentLoaded", async () => {
         consoleNode.scrollTop = consoleNode.scrollHeight;
       }
     });
+    // Advanced command streaming
+    listen('advanced-log', (event) => {
+      const out = document.getElementById('adv-output');
+      if (out) {
+        const span = document.createElement('div');
+        span.innerText = event.payload;
+        out.appendChild(span);
+        out.scrollTop = out.scrollHeight;
+      }
+    });
   }
 
   // Update Checker
@@ -604,11 +665,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const resp = await invoke("check_for_updates");
-      title.textContent = resp.title;
+      title.innerHTML = `<i class="fas ${resp.status === 'upgrade' ? 'fa-arrow-up-from-bracket' : 'fa-circle-check'}"></i> ${resp.title}`;
       msg.innerHTML = resp.message;
       alertBox.className = `alert mt-3 custom-alert mx-auto text-start alert-${resp.status === 'upgrade' ? 'primary' : 'success'}`;
     } catch (err) {
-      title.textContent = 'Update Failed';
+      title.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Update Failed`;
       msg.textContent = err;
       alertBox.className = 'alert mt-3 custom-alert mx-auto text-start alert-danger';
     } finally {
@@ -659,6 +720,53 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Open the support page (uses opener plugin and falls back to window.open)
     invoke("plugin:opener|open_url", { url: "https://utilities.arcbase.one/support" }).catch(() => window.open("https://utilities.arcbase.one/support", "_blank"));
   });
+
+  // Advanced tools UI wiring
+  const advRunBtn = document.getElementById('adv-run-btn');
+  if (advRunBtn) {
+    advRunBtn.addEventListener('click', async () => {
+      const cmd = document.getElementById('adv-cmd-input').value.trim();
+      const useRoot = document.getElementById('adv-use-root').checked;
+      const out = document.getElementById('adv-output');
+      if (!cmd) return;
+      if (out) out.textContent = `Running: ${cmd}\n`;
+      try {
+        await invoke('run_advanced_cmd', { cmd, use_root: useRoot });
+      } catch (e) {
+        if (out) out.textContent += 'Error: ' + e + '\n';
+      }
+    });
+  }
+
+  const sysGet = document.getElementById('sysctl-get');
+  const sysSet = document.getElementById('sysctl-set');
+  if (sysGet) {
+    sysGet.addEventListener('click', async () => {
+      const key = document.getElementById('sysctl-key').value.trim();
+      const out = document.getElementById('adv-output');
+      if (!key) return;
+      try {
+        const val = await invoke('get_sysctl', { key });
+        if (out) out.textContent += `${key} = ${val}\n`;
+      } catch (e) {
+        if (out) out.textContent += `Error getting ${key}: ${e}\n`;
+      }
+    });
+  }
+  if (sysSet) {
+    sysSet.addEventListener('click', async () => {
+      const key = document.getElementById('sysctl-key').value.trim();
+      const value = document.getElementById('sysctl-value').value.trim();
+      const out = document.getElementById('adv-output');
+      if (!key || !value) return;
+      try {
+        const resp = await invoke('set_sysctl', { key, value });
+        if (out) out.textContent += `Set ${key} -> ${resp}\n`;
+      } catch (e) {
+        if (out) out.textContent += `Error setting ${key}: ${e}\n`;
+      }
+    });
+  }
 });
 
 let memChart;

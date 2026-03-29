@@ -21,3 +21,10 @@ Notes:
 Recommended editor setup:
 
 - VS Code with the Tauri extension and rust-analyzer for Rust support.
+
+License
+-------
+
+Seeker Utilities is distributed under the terms of the GNU General Public License version 3 (GPLv3). See the bundled LICENSE file for the full text. By using or redistributing this software you agree to the terms of the GPLv3.
+
+Copyright (C) 2026 ArcbaseHQ <support@arcbase.one>

@@ -74,7 +74,20 @@
             Settings
           </a>
         </li>
+        <li>
+          <a href="#" class="nav-link nav-btn advanced-only d-none" data-target="diagnostics">
+            <i class="fa-solid fa-magnifying-glass-chart"></i>
+            Diagnostics
+          </a>
+        </li>
+        <li>
+          <a href="#" class="nav-link nav-btn advanced-only d-none" data-target="advanced-tools">
+            <i class="fa-solid fa-wrench"></i>
+            Advanced
+          </a>
+        </li>
       </ul>
+      <div class="text-muted small">v0.2.0</div>
     </nav>
 
     <!-- Main Content Area -->
@@ -86,11 +99,8 @@
           <img src="assets/logo-94.png" alt="logo" class="compact-logo">
           <div>
             <div class="fw-semibold">Seeker Utilities</div>
-            <div class="text-muted small">v0.1.0</div>
+            <p class="text-muted small">There's a wonderful day waiting ahead of you.</p>
           </div>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <a href="#" id="support-link" class="text-muted small">Support</a>
         </div>
       </div>
 
@@ -154,6 +164,12 @@
                   style="width: 8px; height: 8px;"></span>
                 <span id="sys-state-text">Optimal Performance</span>
               </div>
+            </div>
+          </div>
+          <div class="col-12 advanced-only d-none">
+            <div class="glass-card p-3 mt-3">
+              <h6 class="fw-bold mb-2">Advanced System Summary</h6>
+              <div id="adv-home-summary" class="text-muted small">Enable Advanced Mode to view detailed hardware and disk information.</div>
             </div>
           </div>
         </div>
@@ -322,18 +338,6 @@
 
           <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
             <div>
-              <h6 class="fw-bold mb-1"><i class="fas fa-chart-line me-2 text-primary-gradient"></i> Anonymous Telemetry
-              </h6>
-              <p class="text-muted mb-0" style="font-size: 0.9rem;">Send anonymous crash reports to help improve
-                performance.</p>
-            </div>
-            <div class="form-check form-switch fs-4">
-              <input class="form-check-input" type="checkbox" role="switch" id="setting-telemetry">
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-            <div>
               <h6 class="fw-bold mb-1"><i class="fas fa-moon me-2 text-primary-gradient"></i> Dark Mode</h6>
               <p class="text-muted mb-0" style="font-size: 0.9rem;">Override the application interface with a dark
                 theme.</p>
@@ -365,6 +369,17 @@
             </div>
           </div>
 
+          <div class="d-flex justify-content-between align-items-center mb-4 pb-3">
+            <div>
+              <h6 class="fw-bold mb-1"><i class="fas fa-user-shield me-2 text-primary-gradient"></i> Advanced Mode
+              </h6>
+              <p class="text-muted mb-0" style="font-size: 0.9rem;">Show expert features and diagnostic pages for power users.</p>
+            </div>
+            <div class="form-check form-switch fs-4">
+              <input class="form-check-input" type="checkbox" role="switch" id="setting-advanced">
+            </div>
+          </div>
+
           <hr class="my-4 text-muted">
           <div class="text-center pt-2">
             <button id="run-updater-btn" class="btn btn-outline-primary px-4 shadow-sm fw-bold">
@@ -377,6 +392,50 @@
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <!-- DIAGNOSTICS (Advanced Only) -->
+      <section id="diagnostics" class="spa-tab d-none">
+        <h2 class="fw-bold mb-2">Diagnostics</h2>
+        <p class="text-muted mb-4">Low-level diagnostic utilities for troubleshooting and logs.</p>
+        <div class="glass-card p-4">
+          <h6 class="fw-bold">System Logs</h6>
+          <pre class="p-3" style="height:200px; overflow:auto; background:#0f172a; color:#d1fae5; border-radius:6px;">No logs available in this demo.</pre>
+        </div>
+      </section>
+
+      <!-- ADVANCED TOOLS (Advanced Only) -->
+      <section id="advanced-tools" class="spa-tab d-none">
+        <h2 class="fw-bold mb-2">Advanced Tools</h2>
+        <p class="text-muted mb-4">Power-user utilities: kernel tuning, raw process control, and CLI hooks.</p>
+        <div class="glass-card p-4">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Run Command</label>
+            <div class="input-group">
+              <input id="adv-cmd-input" type="text" class="form-control" placeholder="e.g. dmesg | tail -n 50">
+              <button id="adv-run-btn" class="btn btn-primary">Run</button>
+            </div>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" id="adv-use-root">
+              <label class="form-check-label small text-muted" for="adv-use-root">Run with root privileges (pkexec)</label>
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label fw-bold">Kernel Tunables (sysctl)</label>
+            <div class="d-flex gap-2">
+              <input id="sysctl-key" type="text" class="form-control" placeholder="vm.swappiness">
+              <input id="sysctl-value" type="text" class="form-control" placeholder="value">
+              <button id="sysctl-get" class="btn btn-outline-secondary">Get</button>
+              <button id="sysctl-set" class="btn btn-outline-danger">Set</button>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label fw-bold">Output</label>
+            <pre id="adv-output" class="p-3" style="height:220px; overflow:auto; background:#0f172a; color:#d1fae5; border-radius:6px;">Ready.</pre>
+          </div>
         </div>
       </section>
 
@@ -429,6 +488,12 @@
                 <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.8rem;">Hostname</h6>
                 <h5 id="sys-host" class="fw-bold mb-0 text-break">Loading...</h5>
               </div>
+            </div>
+          </div>
+          <div class="col-12 advanced-only d-none">
+            <div class="glass-card p-4 mt-3">
+              <h6 class="fw-bold mb-2">Detailed Disks</h6>
+              <div id="adv-disks" class="text-muted small">Enable Advanced Mode to view disk partitions and usage.</div>
             </div>
           </div>
           <div class="col-12 mt-3">
