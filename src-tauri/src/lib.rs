@@ -1,7 +1,7 @@
 use serde::Serialize;
-use std::sync::Mutex;
+use std::io::{BufRead, BufReader, Write};
 use std::process::{Command, Stdio};
-use std::io::{BufRead, BufReader};
+use std::sync::Mutex;
 use sysinfo::{System, Networks, Disks};
 use tauri::{State, AppHandle, Emitter};
 use tauri_plugin_updater::UpdaterExt;
@@ -137,43 +137,91 @@ fn get_processes(state: State<'_, AppState>) -> Vec<ProcessInfo> {
     processes
 }
 
+fn bytes_to_mb(bytes: u64) -> u64 {
+    bytes / 1_048_576
+}
+
+fn is_valid_systemd_unit(unit: &str) -> bool {
+    !unit.is_empty()
+        && unit
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-' | '@' | ':'))
+}
+
+fn is_valid_sysctl_key(key: &str) -> bool {
+    !key.is_empty()
+        && key
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-'))
+}
+
+fn is_valid_sysctl_value(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-' | '/' | ':'))
+}
+
 #[tauri::command]
-fn run_maintenance(state: State<'_, AppState>) -> Result<String, String> {
+async fn run_maintenance(state: State<'_, AppState>) -> Result<String, String> {
     let mem_before = {
-        let mut sys = state.sys.lock().unwrap();
+        let mut sys = state.sys.lock().map_err(|e| format!("Failed to lock system state: {}", e))?;
         sys.refresh_memory();
         sys.used_memory()
     };
-    
-    let output = Command::new("pkexec")
+
+    // --- STEP 1: Run both operations in a single pkexec ---
+    let mut pkexec = Command::new("pkexec")
         .arg("sh")
         .arg("-c")
-        .arg("sync; echo 3 > /proc/sys/vm/drop_caches")
-        .output();
-        
-    match output {
-        Ok(out) if out.status.success() => {
-            let mem_after = {
-                let mut sys = state.sys.lock().unwrap();
-                sys.refresh_memory();
-                sys.used_memory()
-            };
-            
-            let freed = if mem_before > mem_after {
-                mem_before - mem_after
-            } else {
-                0
-            };
-            
-            let mb_freed = freed / (1024 * 1024);
-            Ok(format!("Successfully wiped unused physical system cache. Reclaimed {} MB of footprint.", mb_freed))
-        },
-        Ok(out) => {
-            let err = String::from_utf8_lossy(&out.stderr);
-            Err(format!("Cleanup natively blocked or failed: {}", err))
-        },
-        Err(e) => Err(format!("Failed to execute authentication hook: {}", e)),
+        .arg(
+            "tee /proc/sys/vm/drop_caches >/dev/null && \
+             find /tmp /var/tmp -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +"
+        )
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to start pkexec: {}", e))?;
+
+    {
+        let stdin = pkexec
+            .stdin
+            .as_mut()
+            .ok_or("Failed to open stdin for pkexec")?;
+        stdin
+            .write_all(b"3\n")
+            .map_err(|e| format!("Failed to write to pkexec stdin: {}", e))?;
     }
+
+    let output = pkexec
+        .wait_with_output()
+        .map_err(|e| format!("Failed to wait for pkexec process: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!(
+            "Maintenance failed. Status: {:?}, Stderr: {}",
+            output.status, stderr
+        ));
+    }
+
+    let mem_after = {
+        let mut sys = state.sys.lock().map_err(|e| format!("Failed to lock system state: {}", e))?;
+        sys.refresh_memory();
+        sys.used_memory()
+    };
+
+    let freed_mb = if mem_before > mem_after {
+        bytes_to_mb(mem_before - mem_after)
+    } else {
+        0
+    };
+
+    Ok(format!(
+        "System maintenance complete. Reclaimed {} MB. Temporary directories cleaned.",
+        freed_mb
+    ))
 }
 
 #[tauri::command]
@@ -241,25 +289,25 @@ fn get_advanced_sysinfo(state: State<'_, AppState>) -> Result<serde_json::Value,
 #[tauri::command]
 fn start_log_tail(app: AppHandle, state: State<'_, AppState>, unit: Option<String>) -> Result<String, String> {
     // Start a background journalctl -f process and emit lines to frontend
-    let mut sys = state.sys.lock().map_err(|e| format!("Lock error: {}", e))?;
-
     // If a child is already running, return
     {
-        let mut guard = state.diag_child.lock().map_err(|e| format!("Lock error: {}", e))?;
+        let guard = state.diag_child.lock().map_err(|e| format!("Lock error: {}", e))?;
         if guard.is_some() {
             return Err("Diagnostics already running".into());
         }
     }
 
-    let cmd = if unit.is_some() {
-        format!("journalctl -u {} -f --no-pager", unit.unwrap())
-    } else {
-        "journalctl -f --no-pager".to_string()
-    };
+    let mut command = Command::new("journalctl");
+    if let Some(unit_name) = unit.as_deref().map(str::trim).filter(|u| !u.is_empty()) {
+        if !is_valid_systemd_unit(unit_name) {
+            return Err("Invalid systemd unit name format".into());
+        }
+        command.arg("-u").arg(unit_name);
+    }
 
-    let mut child = Command::new("sh")
-        .arg("-c")
-        .arg(&cmd)
+    let mut child = command
+        .arg("-f")
+        .arg("--no-pager")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
@@ -317,29 +365,50 @@ fn run_booster(state: State<'_, AppState>) -> Result<String, String> {
         sys.used_memory()
     };
     
-    let output = Command::new("pkexec")
-        .arg("sh")
-        .arg("-c")
-        .arg("sync; echo 3 > /proc/sys/vm/drop_caches")
-        .output();
-        
-    match output {
-        Ok(out) if out.status.success() => {
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            let mem_after = {
-                let mut sys = state.sys.lock().unwrap();
-                sys.refresh_memory();
-                sys.used_memory()
-            };
-            
-            let freed = if mem_before > mem_after { mem_before - mem_after } else { 0 };
-            let freed_mb = freed as f64 / 1024.0 / 1024.0;
-            
-            Ok(format!("Successfully dropped cache! Automatically reclaimed {:.1} MB of RAM.", freed_mb))
-        },
-        Ok(out) => Err(format!("Action blocked or failed: {}", String::from_utf8_lossy(&out.stderr))),
-        Err(e) => Err(format!("Failed to retrieve permissions: {}", e))
+    let mut cache_drop = Command::new("pkexec")
+        .arg("tee")
+        .arg("/proc/sys/vm/drop_caches")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to retrieve permissions: {}", e))?;
+
+    {
+        let stdin = cache_drop
+            .stdin
+            .as_mut()
+            .ok_or("Failed to open stdin for booster command")?;
+        stdin
+            .write_all(b"3\n")
+            .map_err(|e| format!("Failed to write to booster command: {}", e))?;
     }
+
+    let output = cache_drop
+        .wait_with_output()
+        .map_err(|e| format!("Failed waiting for booster command: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "Action blocked or failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    let mem_after = {
+        let mut sys = state.sys.lock().unwrap();
+        sys.refresh_memory();
+        sys.used_memory()
+    };
+
+    let freed = if mem_before > mem_after { mem_before - mem_after } else { 0 };
+    let freed_mb = freed as f64 / 1024.0 / 1024.0;
+
+    Ok(format!(
+        "Successfully dropped cache! Automatically reclaimed {:.1} MB of RAM.",
+        freed_mb
+    ))
 }
 
 #[tauri::command]
@@ -469,7 +538,7 @@ async fn send_telemetry(enabled: bool) -> Result<String, String> {
         .send()
         .await {
             Ok(_) => Ok("Telemetry ping sent successfully.".to_string()),
-            Err(_) => Ok("Telemetry ping failed (Likely offline/local dev). Slapping success to avoid UI noise.".to_string())
+            Err(e) => Err(format!("Telemetry ping failed: {}", e)),
         }
 }
 
@@ -665,6 +734,10 @@ fn run_advanced_cmd(app: AppHandle, cmd: String, use_root: bool) -> Result<Strin
 
 #[tauri::command]
 fn get_sysctl(key: String) -> Result<String, String> {
+    if !is_valid_sysctl_key(&key) {
+        return Err("Invalid sysctl key format".into());
+    }
+
     let output = Command::new("sysctl")
         .arg("-n")
         .arg(&key)
@@ -679,11 +752,17 @@ fn get_sysctl(key: String) -> Result<String, String> {
 
 #[tauri::command]
 fn set_sysctl(key: String, value: String) -> Result<String, String> {
-    let cmd = format!("sysctl -w {}={}", key, value);
+    if !is_valid_sysctl_key(&key) {
+        return Err("Invalid sysctl key format".into());
+    }
+    if !is_valid_sysctl_value(&value) {
+        return Err("Invalid sysctl value format".into());
+    }
+
     let output = Command::new("pkexec")
-        .arg("sh")
-        .arg("-c")
-        .arg(&cmd)
+        .arg("sysctl")
+        .arg("-w")
+        .arg(format!("{}={}", key, value))
         .output();
 
     match output {

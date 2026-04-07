@@ -6,10 +6,32 @@ let currentTab = 'dashboard';
 let cpuChart;
 let dataPollInterval;
 let netChart;
+let netGradientIn;
+let netGradientOut;
 let prevNetRx = null;
 let prevNetTx = null;
 let prevNetTs = null;
 let netView = 'in';
+
+const htmlEscapeMap = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+};
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => htmlEscapeMap[char]);
+}
+
+function sanitizeClassList(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9\s_-]/g, '').trim();
+}
+
+function toSafeDomId(prefix, value) {
+  return `${prefix}${String(value).replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+}
 
 // Format Utils
 function formatBytes(bytes) {
@@ -115,7 +137,6 @@ async function updateMetrics() {
     document.getElementById('disk-stat').textContent = `${diskUsed} / ${diskTotal} GB`;
     document.getElementById('disk-bar').style.width = `${metrics.disk_total ? (metrics.disk_used / metrics.disk_total) * 100 : 0}%`;
 
-    const downBps = metrics.net_rx / 2.5;
     // Compute bytes-per-second using previous samples
     const now = Date.now();
     let bpsDown = 0;
@@ -142,9 +163,10 @@ async function updateMetrics() {
       // Update dataset color based on view
       if (netView === 'in') {
         netChart.data.datasets[0].borderColor = '#10b981';
-        netChart.data.datasets[0].backgroundColor = netChart.data.datasets[0].backgroundColor; // keep as-is
+        netChart.data.datasets[0].backgroundColor = netGradientIn;
       } else {
         netChart.data.datasets[0].borderColor = '#6366f1';
+        netChart.data.datasets[0].backgroundColor = netGradientOut;
       }
       netChart.update();
     }
@@ -237,10 +259,13 @@ async function loadAdvancedSysInfo() {
       if (disks.length === 0) {
         disksEl.textContent = 'No disk information available.';
       } else {
-        disksEl.innerHTML = disks.map(d => {
+        disksEl.replaceChildren();
+        disks.forEach((d) => {
           const used = d.total_space - d.available_space;
-          return `${d.name} (${d.mount_point}) — ${ (used/1024/1024).toFixed(1) } MB used of ${ (d.total_space/1024/1024).toFixed(1) } MB`;
-        }).join('<br>');
+          const line = document.createElement('div');
+          line.textContent = `${d.name} (${d.mount_point}) - ${(used / 1024 / 1024).toFixed(1)} MB used of ${(d.total_space / 1024 / 1024).toFixed(1)} MB`;
+          disksEl.appendChild(line);
+        });
       }
     }
   } catch (e) {
@@ -253,12 +278,12 @@ async function updateProcesses() {
     const processes = await invoke("get_processes");
     const tbody = document.getElementById('process-table-body');
 
-    tbody.innerHTML = processes.map(p => `
+    tbody.innerHTML = processes.map((p) => `
       <tr>
-        <td class="ps-4 text-muted" style="font-family: monospace;">${p.pid}</td>
-        <td class="fw-medium text-dark">${p.name}</td>
-        <td class="text-secondary" style="font-family: monospace;">${formatBytes(p.memory)}</td>
-        <td class="text-secondary" style="font-family: monospace;">${p.cpu_usage.toFixed(1)}%</td>
+        <td class="ps-4 text-muted" style="font-family: monospace;">${escapeHtml(p.pid)}</td>
+        <td class="fw-medium text-dark">${escapeHtml(p.name)}</td>
+        <td class="text-secondary" style="font-family: monospace;">${escapeHtml(formatBytes(p.memory))}</td>
+        <td class="text-secondary" style="font-family: monospace;">${escapeHtml(p.cpu_usage.toFixed(1))}%</td>
       </tr>
     `).join('');
   } catch (error) {
@@ -292,15 +317,19 @@ async function loadInstalledApps() {
       return;
     }
 
-    tbody.innerHTML = apps.map(app => `
-      <tr id="row-${app.id}">
-        <td class="ps-4 fw-medium text-dark"><i class="${app.icon} text-muted me-2" style="width:20px; text-align:center;"></i>${app.name}</td>
-        <td class="text-secondary" style="font-family: monospace;">${app.size}</td>
+    tbody.innerHTML = apps.map((app) => {
+      const safeRowId = toSafeDomId('row-', app.id);
+      const safeIcon = sanitizeClassList(app.icon || 'fa-solid fa-box');
+      return `
+      <tr id="${safeRowId}">
+        <td class="ps-4 fw-medium text-dark"><i class="${safeIcon} text-muted me-2" style="width:20px; text-align:center;"></i>${escapeHtml(app.name)}</td>
+        <td class="text-secondary" style="font-family: monospace;">${escapeHtml(app.size)}</td>
         <td class="text-end pe-4">
-          <button class="btn btn-sm btn-outline-danger shadow-sm fw-bold uninstall-btn" data-id="${app.id}">Uninstall</button>
+          <button class="btn btn-sm btn-outline-danger shadow-sm fw-bold uninstall-btn" data-id="${escapeHtml(app.id)}">Uninstall</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     document.querySelectorAll('.uninstall-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -314,7 +343,7 @@ async function loadInstalledApps() {
             try {
             await invoke("uninstall_app", { id }); // Using generic id because dpkg name map applies.
             setTimeout(() => {
-              const row = document.getElementById(`row-${id}`);
+              const row = document.getElementById(toSafeDomId('row-', id));
               if (row) row.remove();
               if (document.querySelectorAll('.uninstall-btn').length === 0) {
                 tableContainer.classList.add('d-none');
@@ -425,7 +454,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       try {
         const resp = await invoke("run_maintenance");
         setTimeout(() => {
-          msg.innerHTML = `<i class="fas fa-check-circle"></i> <span>${resp}</span>`;
+          msg.textContent = resp;
           alertBox.className = "alert mt-4 custom-alert alert-success mx-auto";
           alertBox.classList.remove('d-none');
           btn.innerHTML = 'Clean Cache Files';
@@ -435,7 +464,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         }, 800);
       } catch (e) {
         console.error(e);
-        msg.innerHTML = `<i class="fas fa-exclamation-triangle"></i> <span>${e}</span>`;
+        msg.textContent = String(e);
         alertBox.className = "alert mt-4 custom-alert alert-danger mx-auto";
         alertBox.classList.remove('d-none');
         btn.disabled = false;
@@ -457,7 +486,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       try {
         const resp = await invoke("run_booster");
         setTimeout(() => {
-          msg.innerHTML = `<i class="fas fa-bolt"></i> <span>${resp}</span>`;
+          msg.textContent = resp;
           alertBox.className = "alert alert-success mt-4 custom-alert mx-auto";
           btn.innerHTML = 'Boost Performance';
           btn.disabled = false;
@@ -465,7 +494,7 @@ window.addEventListener("DOMContentLoaded", async () => {
           setTimeout(() => alertBox.classList.add('d-none'), 4000);
         }, 1000);
       } catch (e) {
-        msg.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${e}</span>`;
+        msg.textContent = String(e);
         alertBox.className = "alert alert-danger mt-4 custom-alert mx-auto";
         alertBox.classList.remove('d-none');
         btn.disabled = false;
@@ -582,16 +611,6 @@ window.addEventListener("DOMContentLoaded", async () => {
     if (isAdv) loadAdvancedSysInfo();
   }
 
-  // Open Website
-  document.getElementById('open-website-btn')?.addEventListener('click', async () => {
-    try {
-      await invoke("plugin:opener|open_url", { url: "https://utilities.arcbase.one" });
-    } catch (e) {
-      console.error("Native opener failed, attempting window fallback:", e);
-      window.open("https://utilities.arcbase.one", "_blank");
-    }
-  });
-
   // OS Updater Trigger
   document.getElementById('run-os-update-btn')?.addEventListener('click', () => {
     promptSafetyModal(`This incredibly aggressive background task natively invokes your OS package manager to fetch missing core distribution headers natively. Depending on your configuration, PolKit authentication may freeze over your application briefly to verify encryption keys.<br><br><strong>Are you absolutely sure you want to securely embed this terminal streaming payload?</strong>`, async () => {
@@ -604,7 +623,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Authenticating Target...';
 
       container.classList.remove('d-none');
-      consoleNode.innerHTML = 'Connecting to securely elevated native hook bindings...\n<br>';
+      consoleNode.textContent = 'Connecting to securely elevated native hook bindings...\n';
       loader.classList.remove('d-none');
 
       try {
@@ -625,7 +644,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Clear OS Console
   document.getElementById('clear-os-console-btn')?.addEventListener('click', () => {
     const consoleNode = document.getElementById('os-updater-console');
-    if (consoleNode) consoleNode.innerHTML = '<span class="text-muted">Terminal output cleared.</span>\n<br>';
+    if (consoleNode) consoleNode.textContent = 'Terminal output cleared.\n';
   });
 
   // Map Global Async Terminal Events
@@ -675,12 +694,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     try {
       const resp = await invoke("check_for_updates");
-      title.innerHTML = `<i class="fas ${resp.status === 'upgrade' ? 'fa-arrow-up-from-bracket' : 'fa-circle-check'}"></i> ${resp.title}`;
-      msg.innerHTML = resp.message;
+      title.textContent = resp.title;
+      msg.textContent = resp.message;
       alertBox.className = `alert mt-3 custom-alert mx-auto text-start alert-${resp.status === 'upgrade' ? 'primary' : 'success'}`;
     } catch (err) {
-      title.innerHTML = `<i class="fas fa-triangle-exclamation"></i> Update Failed`;
-      msg.textContent = err;
+      title.textContent = 'Update Failed';
+      msg.textContent = String(err);
       alertBox.className = 'alert mt-3 custom-alert mx-auto text-start alert-danger';
     } finally {
       btn.disabled = false;
@@ -692,19 +711,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   const teleOnLoad = localStorage.getItem('setting-telemetry') === 'true';
   if (teleOnLoad) {
     invoke("send_telemetry", { enabled: true }).catch(err => console.error("Boot telemetry failed:", err));
-  }
-
-  // Wire enterprise header links and version display
-  try {
-    const versionEl = document.getElementById('app-version');
-    if (versionEl && window.__TAURI__?.app) {
-      // Attempt to read the package version from the Tauri context (fallback to package.json value)
-      try {
-        const info = await window.__TAURI__.app.getTauriVersion();
-        // app.getTauriVersion returns a version map; keep existing display if not present
-      } catch (e) {
-        // no-op fallback
-    }
   }
 
   // Net direction switch
@@ -719,17 +725,11 @@ window.addEventListener("DOMContentLoaded", async () => {
       // update chart color immediately
       if (netChart) {
         netChart.data.datasets[0].borderColor = netView === 'in' ? '#10b981' : '#6366f1';
+        netChart.data.datasets[0].backgroundColor = netView === 'in' ? netGradientIn : netGradientOut;
         netChart.update();
       }
     });
   }
-  } catch (e) { /* silence harmless errors while trying to enhance header */ }
-
-  document.getElementById('support-link')?.addEventListener('click', (evt) => {
-    evt.preventDefault();
-    // Open the support page (uses opener plugin and falls back to window.open)
-    invoke("plugin:opener|open_url", { url: "https://utilities.arcbase.one/support" }).catch(() => window.open("https://utilities.arcbase.one/support", "_blank"));
-  });
 
   // Advanced tools UI wiring
   const advRunBtn = document.getElementById('adv-run-btn');
@@ -863,13 +863,13 @@ function initMemoryChart() {
 
 function initNetChart() {
   const ctx = document.getElementById('netChart').getContext('2d');
-  const gradientIn = ctx.createLinearGradient(0, 0, 0, 120);
-  gradientIn.addColorStop(0, 'rgba(16,185,129,0.25)');
-  gradientIn.addColorStop(1, 'rgba(16,185,129,0)');
+  netGradientIn = ctx.createLinearGradient(0, 0, 0, 120);
+  netGradientIn.addColorStop(0, 'rgba(16,185,129,0.25)');
+  netGradientIn.addColorStop(1, 'rgba(16,185,129,0)');
 
-  const gradientOut = ctx.createLinearGradient(0, 0, 0, 120);
-  gradientOut.addColorStop(0, 'rgba(99,102,241,0.25)');
-  gradientOut.addColorStop(1, 'rgba(99,102,241,0)');
+  netGradientOut = ctx.createLinearGradient(0, 0, 0, 120);
+  netGradientOut.addColorStop(0, 'rgba(99,102,241,0.25)');
+  netGradientOut.addColorStop(1, 'rgba(99,102,241,0)');
 
   netChart = new Chart(ctx, {
     type: 'line',
@@ -879,7 +879,7 @@ function initNetChart() {
         label: 'Net (B/s)',
         data: Array(20).fill(0),
         borderColor: netView === 'in' ? '#10b981' : '#6366f1',
-        backgroundColor: netView === 'in' ? gradientIn : gradientOut,
+        backgroundColor: netView === 'in' ? netGradientIn : netGradientOut,
         borderWidth: 2,
         tension: 0.3,
         fill: true,
@@ -931,3 +931,10 @@ function updateMemoryChart(usedMemory, totalMemory) {
   document.getElementById('mem-stat').textContent = `${(usedMemory / (1024 ** 3)).toFixed(1)} / ${(totalMemory / (1024 ** 3)).toFixed(1)} GB`;
   document.getElementById('mem-bar').style.width = percent + '%';
 }
+
+window.addEventListener('beforeunload', () => {
+  if (dataPollInterval) {
+    clearInterval(dataPollInterval);
+    dataPollInterval = null;
+  }
+});

@@ -15,7 +15,6 @@ Building a release:
 3. Build the Tauri app: `npx tauri build`.
 
 Notes:
-- Telemetry is enabled only when explicitly set in-app; review `src-tauri/src/lib.rs` and the frontend settings to understand what is sent.
 - This repository includes vendor assets in `src/` for simplicity. Consider using an explicit build step and package-managed dependencies for larger projects.
 
 Recommended editor setup:
