@@ -1,572 +1,1304 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seeker Utilities</title>
+    <link rel="stylesheet" href="bootstrap.min.css" />
+    <link rel="stylesheet" href="styles.css" />
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Seeker Utilities</title>
-  <link rel="stylesheet" href="bootstrap.min.css" />
-  <link rel="stylesheet" href="styles.css" />
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
 
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="chart.umd.js" defer></script>
+    <script src="bootstrap.bundle.min.js" defer></script>
+    <script type="module" src="main.js" defer></script>
+  </head>
 
-  <script src="chart.umd.js" defer></script>
-  <script src="bootstrap.bundle.min.js" defer></script>
-  <script type="module" src="main.js" defer></script>
-</head>
+  <body class="bg-custom">
+    <div class="d-flex vh-100 overflow-hidden">
+      <!-- Sidebar -->
+      <nav
+        class="sidebar d-flex flex-column flex-shrink-0 p-3"
+        style="width: 260px"
+      >
+        <a
+          href="#"
+          class="d-flex align-items-center mb-4 mt-2 me-md-auto text-decoration-none slide-in"
+          style="color: var(--text-main)"
+        >
+          <img
+            src="assets/logo-94.png"
+            alt="Logo"
+            width="28"
+            height="28"
+            class="me-3 tauri-logo"
+            style="filter: invert(0.4) sepia(1) saturate(10) hue-rotate(190deg)"
+          />
+          <span class="fs-5 fw-bold">Seeker Utilities</span>
+        </a>
 
-<body class="bg-custom">
-  <div class="d-flex vh-100 overflow-hidden">
-    <!-- Sidebar -->
-    <nav class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 260px;">
-      <a href="#" class="d-flex align-items-center mb-4 mt-2 me-md-auto text-decoration-none slide-in"
-        style="color: var(--text-main);">
-        <img src="assets/logo-94.png" alt="Logo" width="28" height="28" class="me-3 tauri-logo"
-          style="filter: invert(0.4) sepia(1) saturate(10) hue-rotate(190deg);">
-        <span class="fs-5 fw-bold">Seeker Utilities</span>
-      </a>
+        <ul class="nav nav-pills flex-column mb-auto gap-1">
+          <li class="nav-item">
+            <a
+              href="#"
+              class="nav-link nav-btn active"
+              data-target="dashboard"
+              aria-current="page"
+            >
+              <i class="fa-solid fa-house"></i>
+              Home
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-link nav-btn" data-target="optimizer">
+              <i class="fa-solid fa-gauge-high"></i>
+              Processes
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-link nav-btn" data-target="cleaner">
+              <i class="fa-solid fa-broom"></i>
+              Cleaner
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-link nav-btn" data-target="booster">
+              <i class="fa-solid fa-rocket"></i>
+              Booster
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-link nav-btn" data-target="uninstaller">
+              <i class="fa-solid fa-trash"></i>
+              Uninstaller
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-link nav-btn" data-target="your-pc">
+              <i class="fa-solid fa-computer"></i>
+              Your PC
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-link nav-btn" data-target="security">
+              <i class="fa-solid fa-shield-halved"></i>
+              Security
+            </a>
+          </li>
+          <li>
+            <a href="#" class="nav-link nav-btn" data-target="configurator">
+              <i class="fa-solid fa-gear"></i>
+              Settings
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              class="nav-link nav-btn advanced-only d-none"
+              data-target="diagnostics"
+            >
+              <i class="fa-solid fa-magnifying-glass-chart"></i>
+              Diagnostics
+            </a>
+          </li>
+          <li>
+            <a
+              href="#"
+              class="nav-link nav-btn advanced-only d-none"
+              data-target="advanced-tools"
+            >
+              <i class="fa-solid fa-wrench"></i>
+              Advanced
+            </a>
+          </li>
+        </ul>
+        <div class="text-muted small">v0.3.0</div>
+      </nav>
 
-      <ul class="nav nav-pills flex-column mb-auto gap-1">
-        <li class="nav-item">
-          <a href="#" class="nav-link nav-btn active" data-target="dashboard" aria-current="page">
-            <i class="fa-solid fa-house"></i>
-            Home
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn" data-target="optimizer">
-            <i class="fa-solid fa-gauge-high"></i>
-            Processes
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn" data-target="cleaner">
-            <i class="fa-solid fa-broom"></i>
-            Cleaner
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn" data-target="booster">
-            <i class="fa-solid fa-rocket"></i>
-            Booster
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn" data-target="uninstaller">
-            <i class="fa-solid fa-trash"></i>
-            Uninstaller
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn" data-target="your-pc">
-            <i class="fa-solid fa-computer"></i>
-            Your PC
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn" data-target="configurator">
-            <i class="fa-solid fa-gear"></i>
-            Settings
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn advanced-only d-none" data-target="diagnostics">
-            <i class="fa-solid fa-magnifying-glass-chart"></i>
-            Diagnostics
-          </a>
-        </li>
-        <li>
-          <a href="#" class="nav-link nav-btn advanced-only d-none" data-target="advanced-tools">
-            <i class="fa-solid fa-wrench"></i>
-            Advanced
-          </a>
-        </li>
-      </ul>
-      <div class="text-muted small">v0.2.1</div>
-    </nav>
-
-    <!-- Main Content Area -->
-    <main class="content-area flex-grow-1 p-5 overflow-auto fade-in">
-
-      <!-- Compact Professional Header -->
-      <div class="compact-header d-flex align-items-center justify-content-between mb-3">
-        <div class="d-flex align-items-center gap-3">
-          <img src="assets/logo-94.png" alt="logo" class="compact-logo">
-          <div>
-            <div class="fw-semibold">Seeker Utilities</div>
-            <p class="text-muted small">There's a wonderful day waiting ahead of you.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- DASHBOARD TAB -->
-      <section id="dashboard" class="spa-tab active">
-        <h2 class="fw-bold mb-2">System Overview</h2>
-        <p class="text-muted mb-4"><i>There's a wonderful day waiting ahead of you.</i></p>
-
-        <div class="row g-4 mb-4">
-          <div class="col-md-4">
-            <div class="glass-card stat-card p-4 h-100">
-              <h6 class="text-muted text-uppercase mb-2 fw-semibold">CPU Load</h6>
-              <h2 id="cpu-stat" class="fw-bold mb-0">0%</h2>
-              <div class="progress mt-3">
-                <div id="cpu-bar" class="progress-bar custom-progress" role="progressbar" style="width: 0%"></div>
-              </div>
-              <br>
-              <div class="chart-container" style="position: relative; width:100%">
-                <canvas id="cpuChart"></canvas>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="glass-card stat-card p-4 h-100">
-              <h6 class="text-muted text-uppercase mb-2 fw-semibold">Memory Usage</h6>
-              <h2 id="mem-stat" class="fw-bold mb-0">0 / 0 GB</h2>
-              <div class="progress mt-3">
-                <div id="mem-bar" class="progress-bar custom-progress bg-info" role="progressbar" style="width: 0%">
-                </div>
-              </div>
-              <br>
-              <div class="chart-container" style="position: relative; width:100%">
-                <canvas id="memChart"></canvas>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div
-              class="glass-card stat-card p-4 h-100 position-relative d-flex flex-column align-items-center justify-content-center">
-              <h6 class="text-muted text-uppercase mb-3 fw-semibold w-100 text-start">Seeker Score</h6>
-
-              <div class="position-relative d-flex align-items-center justify-content-center"
-                style="width: 130px; height: 130px;">
-                <svg class="circular-chart" viewBox="0 0 36 36">
-                  <path class="circle-bg" d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  <path class="circle" id="score-circle-path" stroke-dasharray="100, 100" stroke-dashoffset="0" d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <div class="position-absolute d-flex flex-column align-items-center mt-1">
-                  <h2 id="seeker-score" class="mb-0 fw-bold text-primary-gradient"
-                    style="font-size: 2.2rem; line-height: 1;">100</h2>
-                </div>
-              </div>
-
-              <div class="mt-3 text-success fw-bold w-100 text-center" id="sys-state-wrapper"
-                style="font-size: 0.9rem;">
-                <span id="sys-state-dot" class="d-inline-block bg-success rounded-circle me-1"
-                  style="width: 8px; height: 8px;"></span>
-                <span id="sys-state-text">Optimal Performance</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 advanced-only d-none">
-            <div class="glass-card p-3 mt-3">
-              <h6 class="fw-bold mb-2">Advanced System Summary</h6>
-              <div id="adv-home-summary" class="text-muted small">Enable Advanced Mode to view detailed hardware and disk information.</div>
+      <!-- Main Content Area -->
+      <main class="content-area flex-grow-1 p-5 overflow-auto fade-in">
+        <!-- Compact Professional Header -->
+        <div
+          class="compact-header d-flex align-items-center justify-content-between mb-3"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <img src="assets/logo-94.png" alt="logo" class="compact-logo" />
+            <div>
+              <div class="fw-semibold">Seeker Utilities</div>
+              <p class="text-muted small">
+                There's a wonderful day waiting ahead of you.
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="row g-4 mb-4">
-          <div class="col-md-4">
-            <div class="glass-card stat-card p-4 h-100">
-              <h6 class="text-muted text-uppercase mb-2 fw-semibold">Disk Usage (Root)</h6>
-              <h2 id="disk-stat" class="fw-bold mb-0">0 / 0 GB</h2>
-              <div class="progress mt-3" style="height: 6px;">
-                <div id="disk-bar" class="progress-bar custom-progress" style="background-color: #8b5cf6;"
-                  role="progressbar" style="width: 0%"></div>
+        <!-- DASHBOARD TAB -->
+        <section id="dashboard" class="spa-tab active">
+          <h2 class="fw-bold mb-2">System Overview</h2>
+          <p class="text-muted mb-4">
+            <i>There's a wonderful day waiting ahead of you.</i>
+          </p>
+
+          <div class="row g-4 mb-4">
+            <div class="col-md-4">
+              <div class="glass-card stat-card p-4 h-100">
+                <h6 class="text-muted text-uppercase mb-2 fw-semibold">
+                  CPU Load
+                </h6>
+                <h2 id="cpu-stat" class="fw-bold mb-0">0%</h2>
+                <div class="progress mt-3">
+                  <div
+                    id="cpu-bar"
+                    class="progress-bar custom-progress"
+                    role="progressbar"
+                    style="width: 0%"
+                  ></div>
+                </div>
+                <br />
+                <div
+                  class="chart-container"
+                  style="position: relative; width: 100%"
+                >
+                  <canvas id="cpuChart"></canvas>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="col-md-4">
-            <div class="glass-card stat-card p-4 h-100">
-              <h6 class="text-muted text-uppercase mb-2 fw-semibold">Swap Partition</h6>
-              <h2 id="swap-stat" class="fw-bold mb-0">0 / 0 GB</h2>
-              <div class="progress mt-3" style="height: 6px;">
-                <div id="swap-bar" class="progress-bar custom-progress bg-secondary" role="progressbar"
-                  style="width: 0%"></div>
+            <div class="col-md-4">
+              <div class="glass-card stat-card p-4 h-100">
+                <h6 class="text-muted text-uppercase mb-2 fw-semibold">
+                  Memory Usage
+                </h6>
+                <h2 id="mem-stat" class="fw-bold mb-0">0 / 0 GB</h2>
+                <div class="progress mt-3">
+                  <div
+                    id="mem-bar"
+                    class="progress-bar custom-progress bg-info"
+                    role="progressbar"
+                    style="width: 0%"
+                  ></div>
+                </div>
+                <br />
+                <div
+                  class="chart-container"
+                  style="position: relative; width: 100%"
+                >
+                  <canvas id="memChart"></canvas>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="col-md-4">
-          <div class="glass-card stat-card p-4 h-100">
-            <h6 class="text-muted text-uppercase mb-2 fw-semibold">Local Traffic</h6>
-              <div class="d-flex justify-content-between align-items-center mt-3 pt-1">
-                <div class="d-flex align-items-center gap-2">
-                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="net-direction-switch">
+            <div class="col-md-4">
+              <div
+                class="glass-card stat-card p-4 h-100 position-relative d-flex flex-column align-items-center justify-content-center"
+              >
+                <h6
+                  class="text-muted text-uppercase mb-3 fw-semibold w-100 text-start"
+                >
+                  Seeker Score
+                </h6>
+
+                <div
+                  class="position-relative d-flex align-items-center justify-content-center"
+                  style="width: 130px; height: 130px"
+                >
+                  <svg class="circular-chart" viewBox="0 0 36 36">
+                    <path
+                      class="circle-bg"
+                      d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      class="circle"
+                      id="score-circle-path"
+                      stroke-dasharray="100, 100"
+                      stroke-dashoffset="0"
+                      d="M18 2.0845
+                      a 15.9155 15.9155 0 0 1 0 31.831
+                      a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  </svg>
+                  <div
+                    class="position-absolute d-flex flex-column align-items-center mt-1"
+                  >
+                    <h2
+                      id="seeker-score"
+                      class="mb-0 fw-bold text-primary-gradient"
+                      style="font-size: 2.2rem; line-height: 1"
+                    >
+                      100
+                    </h2>
                   </div>
-                  <div id="net-direction-label" class="text-muted small">In</div>
                 </div>
-                <div>
-                  <div style="color: #10b981;"><i class="fas fa-arrow-down me-2 opacity-75"></i><span id="net-down"
-                      class="fw-bold">0 KB/s</span></div>
-                  <div style="color: #6366f1;"><i class="fas fa-arrow-up me-2 opacity-75"></i><span id="net-up"
-                      class="fw-bold">0 KB/s</span></div>
+
+                <div
+                  class="mt-3 text-success fw-bold w-100 text-center"
+                  id="sys-state-wrapper"
+                  style="font-size: 0.9rem"
+                >
+                  <span
+                    id="sys-state-dot"
+                    class="d-inline-block bg-success rounded-circle me-1"
+                    style="width: 8px; height: 8px"
+                  ></span>
+                  <span id="sys-state-text">Optimal Performance</span>
                 </div>
               </div>
-              <div class="chart-container mt-3" style="position: relative; width:100%; height: 70px;">
-                <canvas id="netChart"></canvas>
+            </div>
+            <div class="col-12 advanced-only d-none">
+              <div class="glass-card p-3 mt-3">
+                <h6 class="fw-bold mb-2">Advanced System Summary</h6>
+                <div id="adv-home-summary" class="text-muted small">
+                  Enable Advanced Mode to view detailed hardware and disk
+                  information.
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!--- Add info boxes here --->
-
-      </section>
-
-      <!-- OPTIMIZER TAB (Previously array of Processes) -->
-      <section id="optimizer" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Optimizer</h2>
-        <p class="text-muted mb-4">View and manage running active processes.</p>
-        <div class="glass-card p-0 overflow-hidden">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0 custom-table">
-              <thead class="bg-gradient-header">
-                <tr>
-                  <th scope="col" class="ps-4">PID</th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Memory</th>
-                  <th scope="col">CPU %</th>
-                </tr>
-              </thead>
-              <tbody id="process-table-body">
-                <tr>
-                  <td colspan="4" class="text-center py-4 text-muted">Loading processes...</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="row g-4 mb-4">
+            <div class="col-md-4">
+              <div class="glass-card stat-card p-4 h-100">
+                <h6 class="text-muted text-uppercase mb-2 fw-semibold">
+                  Disk Usage (Root)
+                </h6>
+                <h2 id="disk-stat" class="fw-bold mb-0">0 / 0 GB</h2>
+                <div class="progress mt-3" style="height: 6px">
+                  <div
+                    id="disk-bar"
+                    class="progress-bar custom-progress"
+                    style="background-color: #8b5cf6"
+                    role="progressbar"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="glass-card stat-card p-4 h-100">
+                <h6 class="text-muted text-uppercase mb-2 fw-semibold">
+                  Swap Partition
+                </h6>
+                <h2 id="swap-stat" class="fw-bold mb-0">0 / 0 GB</h2>
+                <div class="progress mt-3" style="height: 6px">
+                  <div
+                    id="swap-bar"
+                    class="progress-bar custom-progress bg-secondary"
+                    role="progressbar"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="glass-card stat-card p-4 h-100">
+                <h6 class="text-muted text-uppercase mb-2 fw-semibold">
+                  Local Traffic
+                </h6>
+                <div
+                  class="d-flex justify-content-between align-items-center mt-3 pt-1"
+                >
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="form-check form-switch">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        id="net-direction-switch"
+                      />
+                    </div>
+                    <div id="net-direction-label" class="text-muted small">
+                      In
+                    </div>
+                  </div>
+                  <div>
+                    <div style="color: #10b981">
+                      <i class="fas fa-arrow-down me-2 opacity-75"></i
+                      ><span id="net-down" class="fw-bold">0 KB/s</span>
+                    </div>
+                    <div style="color: #6366f1">
+                      <i class="fas fa-arrow-up me-2 opacity-75"></i
+                      ><span id="net-up" class="fw-bold">0 KB/s</span>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="chart-container mt-3"
+                  style="position: relative; width: 100%; height: 70px"
+                >
+                  <canvas id="netChart"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
 
-      <!-- CLEANER TAB (Maintenance) -->
-      <section id="cleaner" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Cleaner</h2>
-        <p class="text-muted mb-4">Clear system caches and redundant data safely.</p>
-        <div class="glass-card p-5 text-center">
-          <i class="fas fa-broom text-primary-gradient mb-4" style="font-size: 48px; color: var(--primary-color);"></i>
-          <h4 class="fw-bold mb-3">Optimize System Space</h4>
-          <p class="text-muted mb-4 mx-auto" style="max-width: 500px;">
-            Quickly resolve memory leaks and clear redundant cache files generated by temporary system workloads.
+          <!--- Add info boxes here --->
+        </section>
+
+        <!-- OPTIMIZER TAB (Previously array of Processes) -->
+        <section id="optimizer" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Optimizer</h2>
+          <p class="text-muted mb-4">
+            View and manage running active processes.
           </p>
-          <button id="run-maintenance-btn" class="btn px-5 custom-btn py-2">
-            Clean Cache Files
-          </button>
-          <div id="maintenance-alert" class="alert mt-4 custom-alert d-none mx-auto" style="max-width: 400px;"
-            role="alert">
-            <h6 class="mb-0" id="maintenance-msg"></h6>
+          <div class="glass-card p-0 overflow-hidden">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 custom-table">
+                <thead class="bg-gradient-header">
+                  <tr>
+                    <th scope="col" class="ps-4">PID</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Memory</th>
+                    <th scope="col">CPU %</th>
+                  </tr>
+                </thead>
+                <tbody id="process-table-body">
+                  <tr>
+                    <td colspan="4" class="text-center py-4 text-muted">
+                      Loading processes...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- BOOSTER TAB -->
-      <section id="booster" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Booster</h2>
-        <p class="text-muted mb-4">Allocate system resources and prioritize intensive tasks.</p>
-        <div class="glass-card p-5 text-center">
-          <i class="fas fa-rocket text-primary-gradient mb-4" style="font-size: 48px; color: var(--primary-color);"></i>
-          <h4 class="fw-bold mb-3">Game & Workload Booster</h4>
-          <p class="text-muted mb-4 mx-auto" style="max-width: 500px;">
-            Halt non-essential background services to maximize frame rates and processing power.
+        <!-- CLEANER TAB (Maintenance) -->
+        <section id="cleaner" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Cleaner</h2>
+          <p class="text-muted mb-4">
+            Clear system caches and redundant data safely.
           </p>
-          <button id="run-boost-btn" class="btn px-5 custom-btn py-2">
-            Boost Performance
-          </button>
-          <div id="boost-alert" class="alert mt-4 custom-alert d-none mx-auto" style="max-width: 450px;" role="alert">
-            <h6 class="mb-0" id="boost-msg"></h6>
-          </div>
-        </div>
-      </section>
-
-      <!-- UNINSTALLER TAB -->
-      <section id="uninstaller" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Uninstaller</h2>
-        <p class="text-muted mb-4">Safely remove applications installed on your machine.</p>
-        <div class="glass-card p-0 overflow-hidden">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0 custom-table">
-              <thead class="bg-gradient-header">
-                <tr>
-                  <th scope="col" class="ps-4">App Name</th>
-                  <th scope="col">Size</th>
-                  <th scope="col" class="text-end pe-4">Action</th>
-                </tr>
-              </thead>
-              <tbody id="app-table-body">
-                <tr>
-                  <td colspan="3" class="text-center py-4 text-muted">Loading applications...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Empty state placeholder for when all apps are uninstalled -->
-        <div id="empty-apps-state" class="glass-card p-5 text-center d-none mt-4">
-          <i class="fas fa-check-circle text-success mb-3" style="font-size: 40px;"></i>
-          <h5 class="fw-bold">All clean!</h5>
-          <p class="text-muted mb-0">No more applications found matching criteria.</p>
-        </div>
-      </section>
-
-      <!-- CONFIGURATOR TAB -->
-      <section id="configurator" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Settings</h2>
-        <p class="text-muted mb-4">Adjust default utility configurations.</p>
-        <div class="glass-card p-4">
-
-          <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-            <div>
-              <h6 class="fw-bold mb-1"><i class="fas fa-power-off me-2 text-primary-gradient"></i> Launch on Startup
-              </h6>
-              <p class="text-muted mb-0" style="font-size: 0.9rem;">Automatically start Seeker Utilities when you log
-                in.</p>
-            </div>
-            <div class="form-check form-switch fs-4">
-              <input class="form-check-input" type="checkbox" role="switch" id="setting-startup" checked>
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-            <div>
-              <h6 class="fw-bold mb-1"><i class="fas fa-moon me-2 text-primary-gradient"></i> Dark Mode</h6>
-              <p class="text-muted mb-0" style="font-size: 0.9rem;">Override the application interface with a dark
-                theme.</p>
-            </div>
-            <div class="form-check form-switch fs-4">
-              <input class="form-check-input" type="checkbox" role="switch" id="setting-darkmode">
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-            <div>
-              <h6 class="fw-bold mb-1"><i class="fas fa-ghost me-2 text-primary-gradient"></i> Reduce Animations</h6>
-              <p class="text-muted mb-0" style="font-size: 0.9rem;">Disable CSS transitions and graph animations for
-                maximum performance.</p>
-            </div>
-            <div class="form-check form-switch fs-4">
-              <input class="form-check-input" type="checkbox" role="switch" id="setting-animations">
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-              <h6 class="fw-bold mb-1"><i class="fas fa-bell me-2 text-primary-gradient"></i> Critical Alerts</h6>
-              <p class="text-muted mb-0" style="font-size: 0.9rem;">Show system notification when memory spikes over
-                90%.</p>
-            </div>
-            <div class="form-check form-switch fs-4">
-              <input class="form-check-input" type="checkbox" role="switch" id="setting-alerts" checked>
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mb-4 pb-3">
-            <div>
-              <h6 class="fw-bold mb-1"><i class="fas fa-user-shield me-2 text-primary-gradient"></i> Advanced Mode
-              </h6>
-              <p class="text-muted mb-0" style="font-size: 0.9rem;">Show expert features and diagnostic pages for power users.</p>
-            </div>
-            <div class="form-check form-switch fs-4">
-              <input class="form-check-input" type="checkbox" role="switch" id="setting-advanced">
-            </div>
-          </div>
-
-          <hr class="my-4 text-muted">
-          <div class="text-center pt-2">
-            <button id="run-updater-btn" class="btn btn-outline-primary px-4 shadow-sm fw-bold">
-              <i class="fas fa-cloud-arrow-down me-2"></i>Check for Updates
+          <div class="glass-card p-5 text-center">
+            <i
+              class="fas fa-broom text-primary-gradient mb-4"
+              style="font-size: 48px; color: var(--primary-color)"
+            ></i>
+            <h4 class="fw-bold mb-3">Optimize System Space</h4>
+            <p class="text-muted mb-4 mx-auto" style="max-width: 500px">
+              Quickly resolve memory leaks and clear redundant cache files
+              generated by temporary system workloads.
+            </p>
+            <button id="run-maintenance-btn" class="btn px-5 custom-btn py-2">
+              Clean Cache Files
             </button>
-            <div id="update-alert" class="alert mt-3 custom-alert d-none mx-auto text-start"
-              style="max-width: 400px; font-size: 0.9rem;" role="alert">
-              <h6 class="mb-1 fw-bold" id="update-title"></h6>
-              <p class="mb-0" id="update-msg"></p>
+            <div
+              id="maintenance-alert"
+              class="alert mt-4 custom-alert d-none mx-auto"
+              style="max-width: 400px"
+              role="alert"
+            >
+              <h6 class="mb-0" id="maintenance-msg"></h6>
+            </div>
+          </div>
+        </section>
+
+        <!-- BOOSTER TAB -->
+        <section id="booster" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Booster</h2>
+          <p class="text-muted mb-4">
+            Allocate system resources and prioritize intensive tasks.
+          </p>
+          <div class="glass-card p-5 text-center">
+            <i
+              class="fas fa-rocket text-primary-gradient mb-4"
+              style="font-size: 48px; color: var(--primary-color)"
+            ></i>
+            <h4 class="fw-bold mb-3">Game & Workload Booster</h4>
+            <p class="text-muted mb-4 mx-auto" style="max-width: 500px">
+              Halt non-essential background services to maximize frame rates and
+              processing power.
+            </p>
+            <button id="run-boost-btn" class="btn px-5 custom-btn py-2">
+              Boost Performance
+            </button>
+            <div
+              id="boost-alert"
+              class="alert mt-4 custom-alert d-none mx-auto"
+              style="max-width: 450px"
+              role="alert"
+            >
+              <h6 class="mb-0" id="boost-msg"></h6>
+            </div>
+          </div>
+        </section>
+
+        <!-- UNINSTALLER TAB -->
+        <section id="uninstaller" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Uninstaller</h2>
+          <p class="text-muted mb-4">
+            Safely remove applications installed on your machine.
+          </p>
+          <div class="glass-card p-0 overflow-hidden">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 custom-table">
+                <thead class="bg-gradient-header">
+                  <tr>
+                    <th scope="col" class="ps-4">App Name</th>
+                    <th scope="col">Size</th>
+                    <th scope="col" class="text-end pe-4">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="app-table-body">
+                  <tr>
+                    <td colspan="3" class="text-center py-4 text-muted">
+                      Loading applications...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
-        </div>
-      </section>
-
-      <!-- DIAGNOSTICS (Advanced Only) -->
-      <section id="diagnostics" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Diagnostics</h2>
-        <p class="text-muted mb-4">Low-level diagnostic utilities for troubleshooting and logs.</p>
-        <div class="glass-card p-4">
-          <h6 class="fw-bold">Live System Logs (journalctl)</h6>
-          <div class="d-flex gap-2 mb-2">
-            <input id="diag-unit" class="form-control" placeholder="Optional systemd unit (e.g. ssh.service)">
-            <button id="diag-start" class="btn btn-primary">Start</button>
-            <button id="diag-stop" class="btn btn-outline-secondary">Stop</button>
+          <!-- Empty state placeholder for when all apps are uninstalled -->
+          <div
+            id="empty-apps-state"
+            class="glass-card p-5 text-center d-none mt-4"
+          >
+            <i
+              class="fas fa-check-circle text-success mb-3"
+              style="font-size: 40px"
+            ></i>
+            <h5 class="fw-bold">All clean!</h5>
+            <p class="text-muted mb-0">
+              No more applications found matching criteria.
+            </p>
           </div>
-          <pre id="diag-log-output" class="p-3" style="height:320px; overflow:auto; background:#0f172a; color:#d1fae5; border-radius:6px;">Logs will appear here when started.</pre>
-        </div>
-      </section>
+        </section>
 
-      <!-- ADVANCED TOOLS (Advanced Only) -->
-      <section id="advanced-tools" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Advanced Tools</h2>
-        <p class="text-muted mb-4">Power-user utilities: kernel tuning, raw process control, and CLI hooks.</p>
-        <div class="glass-card p-4">
-          <div class="mb-3">
-            <label class="form-label fw-bold">Run Command</label>
-            <div class="input-group">
-              <input id="adv-cmd-input" type="text" class="form-control" placeholder="e.g. dmesg | tail -n 50">
-              <button id="adv-run-btn" class="btn btn-primary">Run</button>
+        <!-- SECURITY TAB -->
+        <section id="security" class="spa-tab d-none">
+          <div
+            class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2"
+          >
+            <div>
+              <h2 class="fw-bold mb-2">Security &amp; Privacy</h2>
+              <p class="text-muted mb-0">
+                Harden your system and protect sensitive data locally.
+              </p>
             </div>
-            <div class="form-check mt-2">
-              <input class="form-check-input" type="checkbox" id="adv-use-root">
-              <label class="form-check-label small text-muted" for="adv-use-root">Run with root privileges (pkexec)</label>
+            <button
+              id="security-refresh-btn"
+              class="btn btn-outline-primary btn-sm"
+            >
+              Run Quick Audit
+            </button>
+          </div>
+
+          <div
+            id="security-alert"
+            class="alert custom-alert d-none align-items-center"
+            role="alert"
+          >
+            <i class="fa-solid fa-shield-check"></i>
+            <div>
+              <div id="security-alert-title" class="fw-bold">
+                Security Action
+              </div>
+              <div id="security-alert-msg" class="small"></div>
             </div>
           </div>
 
-          <div class="mb-2">
-            <label class="form-label fw-bold">Kernel Tunables (sysctl)</label>
-            <div class="d-flex gap-2">
-              <input id="sysctl-key" type="text" class="form-control" placeholder="vm.swappiness">
-              <input id="sysctl-value" type="text" class="form-control" placeholder="value">
-              <button id="sysctl-get" class="btn btn-outline-secondary">Get</button>
-              <button id="sysctl-set" class="btn btn-outline-danger">Set</button>
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="glass-card p-4 h-100">
+                <div
+                  class="d-flex align-items-start justify-content-between mb-2"
+                >
+                  <div>
+                    <h5 class="fw-bold mb-1">
+                      <i
+                        class="fa-solid fa-shield-halved text-primary-gradient me-2"
+                      ></i>
+                      Firewall Control
+                    </h5>
+                    <p class="text-muted small mb-2">
+                      Manage inbound protection and block unwanted access.
+                    </p>
+                  </div>
+                  <span id="fw-status-badge" class="badge bg-secondary"
+                    >Unknown</span
+                  >
+                </div>
+                <div id="fw-engine" class="text-muted small mb-2">
+                  Engine: Not detected
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button id="fw-enable-btn" class="btn btn-primary btn-sm">
+                    Enable
+                  </button>
+                  <button
+                    id="fw-disable-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Disable
+                  </button>
+                  <button
+                    id="fw-refresh-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                <div id="fw-status-msg" class="small text-muted mt-2">
+                  Not checked yet.
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label class="form-label fw-bold">Output</label>
-            <pre id="adv-output" class="p-3" style="height:220px; overflow:auto; background:#0f172a; color:#d1fae5; border-radius:6px;">Ready.</pre>
-          </div>
-        </div>
-      </section>
+            <div class="col-lg-6">
+              <div class="glass-card p-4 h-100">
+                <div
+                  class="d-flex align-items-start justify-content-between mb-2"
+                >
+                  <div>
+                    <h5 class="fw-bold mb-1">
+                      <i
+                        class="fa-solid fa-satellite-dish text-primary-gradient me-2"
+                      ></i>
+                      Remote Login (SSH)
+                    </h5>
+                    <p class="text-muted small mb-2">
+                      Control remote shell access on this device.
+                    </p>
+                  </div>
+                  <span id="ssh-status-badge" class="badge bg-secondary"
+                    >Unknown</span
+                  >
+                </div>
+                <div id="ssh-service-name" class="text-muted small mb-2">
+                  Service: Not detected
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button id="ssh-enable-btn" class="btn btn-primary btn-sm">
+                    Start
+                  </button>
+                  <button
+                    id="ssh-disable-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Stop
+                  </button>
+                  <button
+                    id="ssh-refresh-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Refresh
+                  </button>
+                </div>
+                <div id="ssh-status-msg" class="small text-muted mt-2">
+                  Not checked yet.
+                </div>
+              </div>
+            </div>
 
-      <!-- YOUR PC TAB -->
-      <section id="your-pc" class="spa-tab d-none">
-        <h2 class="fw-bold mb-2">Your PC</h2>
-        <p class="text-muted mb-4">Deep hardware specifications and telemetry.</p>
+            <div class="col-12">
+              <div class="glass-card p-4">
+                <div
+                  class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2"
+                >
+                  <div>
+                    <h5 class="fw-bold mb-1">
+                      <i
+                        class="fa-solid fa-network-wired text-primary-gradient me-2"
+                      ></i>
+                      Open Ports Inspector
+                    </h5>
+                    <p class="text-muted small mb-0">
+                      Review listening services and active sockets.
+                    </p>
+                  </div>
+                  <button
+                    id="ports-scan-btn"
+                    class="btn btn-outline-primary btn-sm"
+                  >
+                    Scan Now
+                  </button>
+                </div>
+                <pre id="ports-output" class="security-terminal mt-3">
+No scan yet.
+                </pre>
+              </div>
+            </div>
 
-        <div class="row g-4">
-          <div class="col-md-6">
-            <div class="glass-card p-4 h-100 d-flex align-items-center">
-              <i class="fas fa-microchip text-primary-gradient me-4" style="font-size: 40px;"></i>
+            <div class="col-lg-6">
+              <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-3">
+                  <i class="fa-solid fa-mask text-primary-gradient me-2"></i>
+                  Privacy Cleanup
+                </h5>
+                <div
+                  class="d-flex justify-content-between align-items-center mb-3"
+                >
+                  <div>
+                    <div class="fw-semibold">Flush DNS Cache</div>
+                    <div class="text-muted small">
+                      Clear resolver history and cached domains.
+                    </div>
+                  </div>
+                  <button
+                    id="dns-flush-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Flush
+                  </button>
+                </div>
+                <div
+                  class="d-flex justify-content-between align-items-center mb-3"
+                >
+                  <div>
+                    <div class="fw-semibold">Clear Recent Files</div>
+                    <div class="text-muted small">
+                      Remove OS recent document entries.
+                    </div>
+                  </div>
+                  <button
+                    id="recent-clear-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div
+                  class="d-flex justify-content-between align-items-center mb-3"
+                >
+                  <div>
+                    <div class="fw-semibold">Wipe Thumbnail Cache</div>
+                    <div class="text-muted small">
+                      Erase preview images stored locally.
+                    </div>
+                  </div>
+                  <button
+                    id="thumbs-clear-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Wipe
+                  </button>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <div class="fw-semibold">Clear Shell History</div>
+                    <div class="text-muted small">
+                      Remove terminal command history files.
+                    </div>
+                  </div>
+                  <button
+                    id="history-clear-btn"
+                    class="btn btn-outline-secondary btn-sm"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="glass-card p-4 h-100">
+                <h5 class="fw-bold mb-3">
+                  <i class="fa-solid fa-key text-primary-gradient me-2"></i>
+                  Password &amp; Passphrase
+                </h5>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold"
+                    >Password Length:
+                    <span id="pwd-length-label">16</span></label
+                  >
+                  <input
+                    id="pwd-length"
+                    type="range"
+                    class="form-range"
+                    min="8"
+                    max="64"
+                    value="16"
+                  />
+                </div>
+                <div class="d-flex flex-wrap gap-3 mb-3">
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="pwd-lower"
+                      checked
+                    />
+                    <label class="form-check-label" for="pwd-lower"
+                      >Lowercase</label
+                    >
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="pwd-upper"
+                      checked
+                    />
+                    <label class="form-check-label" for="pwd-upper"
+                      >Uppercase</label
+                    >
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="pwd-digits"
+                      checked
+                    />
+                    <label class="form-check-label" for="pwd-digits"
+                      >Digits</label
+                    >
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="pwd-symbols"
+                      checked
+                    />
+                    <label class="form-check-label" for="pwd-symbols"
+                      >Symbols</label
+                    >
+                  </div>
+                </div>
+                <div class="input-group mb-3">
+                  <input
+                    id="pwd-output"
+                    class="form-control"
+                    readonly
+                    placeholder="Generated password"
+                  />
+                  <button id="pwd-generate" class="btn btn-primary">
+                    Generate
+                  </button>
+                  <button id="pwd-copy" class="btn btn-outline-secondary">
+                    Copy
+                  </button>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="fw-semibold">Passphrase Words</div>
+                  <div class="small text-muted">
+                    Memorable multi-word option
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <input
+                    id="phrase-count"
+                    type="range"
+                    class="form-range"
+                    min="3"
+                    max="8"
+                    value="4"
+                  />
+                  <span class="small text-muted" id="phrase-count-label"
+                    >4</span
+                  >
+                </div>
+                <div class="input-group">
+                  <input
+                    id="phrase-output"
+                    class="form-control"
+                    readonly
+                    placeholder="Generated passphrase"
+                  />
+                  <button id="phrase-generate" class="btn btn-primary">
+                    Generate
+                  </button>
+                  <button id="phrase-copy" class="btn btn-outline-secondary">
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>    
+        </section>
+
+        <!-- SETTINGS TAB -->
+        <section id="configurator" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Settings</h2>
+          <p class="text-muted mb-4">Adjust default utility configurations.</p>
+          <div class="glass-card p-4">
+            <div
+              class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom"
+            >
               <div>
-                <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.8rem;">Processor</h6>
-                <h5 id="sys-cpu" class="fw-bold mb-0">Loading...</h5>
+                <h6 class="fw-bold mb-1">
+                  <i class="fas fa-power-off me-2 text-primary-gradient"></i>
+                  Launch on Startup
+                </h6>
+                <p class="text-muted mb-0" style="font-size: 0.9rem">
+                  Automatically start Seeker Utilities when you log in.
+                </p>
+              </div>
+              <div class="form-check form-switch fs-4">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="setting-startup"
+                  checked
+                />
+              </div>
+            </div>
+
+            <div
+              class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom"
+            >
+              <div>
+                <h6 class="fw-bold mb-1">
+                  <i class="fas fa-moon me-2 text-primary-gradient"></i> Dark
+                  Mode
+                </h6>
+                <p class="text-muted mb-0" style="font-size: 0.9rem">
+                  Override the application interface with a dark theme.
+                </p>
+              </div>
+              <div class="form-check form-switch fs-4">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="setting-darkmode"
+                />
+              </div>
+            </div>
+
+            <div
+              class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom"
+            >
+              <div>
+                <h6 class="fw-bold mb-1">
+                  <i class="fas fa-ghost me-2 text-primary-gradient"></i> Reduce
+                  Animations
+                </h6>
+                <p class="text-muted mb-0" style="font-size: 0.9rem">
+                  Disable CSS transitions and graph animations for maximum
+                  performance.
+                </p>
+              </div>
+              <div class="form-check form-switch fs-4">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="setting-animations"
+                />
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <h6 class="fw-bold mb-1">
+                  <i class="fas fa-bell me-2 text-primary-gradient"></i>
+                  Critical Alerts
+                </h6>
+                <p class="text-muted mb-0" style="font-size: 0.9rem">
+                  Show system notification when memory spikes over 90%.
+                </p>
+              </div>
+              <div class="form-check form-switch fs-4">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="setting-alerts"
+                  checked
+                />
+              </div>
+            </div>
+
+            <div
+              class="d-flex justify-content-between align-items-center mb-4 pb-3"
+            >
+              <div>
+                <h6 class="fw-bold mb-1">
+                  <i class="fas fa-user-shield me-2 text-primary-gradient"></i>
+                  Advanced Mode
+                </h6>
+                <p class="text-muted mb-0" style="font-size: 0.9rem">
+                  Show expert features and diagnostic pages for power users.
+                </p>
+              </div>
+              <div class="form-check form-switch fs-4">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="setting-advanced"
+                />
+              </div>
+            </div>
+
+            <hr class="my-4 text-muted" />
+            <div class="text-center pt-2">
+              <button
+                id="run-updater-btn"
+                class="btn btn-outline-primary px-4 shadow-sm fw-bold"
+              >
+                <i class="fas fa-cloud-arrow-down me-2"></i>Check for Updates
+              </button>
+              <div
+                id="update-alert"
+                class="alert mt-3 custom-alert d-none mx-auto text-start"
+                style="max-width: 400px; font-size: 0.9rem"
+                role="alert"
+              >
+                <h6 class="mb-1 fw-bold" id="update-title"></h6>
+                <p class="mb-0" id="update-msg"></p>
               </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="glass-card p-4 h-100 d-flex align-items-center">
-              <i class="fas fa-server text-primary-gradient me-4" style="font-size: 40px;"></i>
-              <div>
-                <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.8rem;">Logical Cores</h6>
-                <h5 id="sys-cores" class="fw-bold mb-0">Loading...</h5>
+        </section>
+
+        <!-- DIAGNOSTICS (Advanced Only) -->
+        <section id="diagnostics" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Diagnostics</h2>
+          <p class="text-muted mb-4">
+            Low-level diagnostic utilities for troubleshooting and logs.
+          </p>
+          <div class="glass-card p-4">
+            <h6 class="fw-bold">Live System Logs (journalctl)</h6>
+            <div class="d-flex gap-2 mb-2">
+              <input
+                id="diag-unit"
+                class="form-control"
+                placeholder="Optional systemd unit (e.g. ssh.service)"
+              />
+              <button id="diag-start" class="btn btn-primary">Start</button>
+              <button id="diag-stop" class="btn btn-outline-secondary">
+                Stop
+              </button>
+            </div>
+            <pre
+              id="diag-log-output"
+              class="p-3"
+              style="
+                height: 320px;
+                overflow: auto;
+                background: #0f172a;
+                color: #d1fae5;
+                border-radius: 6px;
+              "
+            >
+Logs will appear here when started.</pre
+            >
+          </div>
+        </section>
+
+        <!-- ADVANCED TOOLS (Advanced Only) -->
+        <section id="advanced-tools" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Advanced Tools</h2>
+          <p class="text-muted mb-4">
+            Power-user utilities: kernel tuning, raw process control, and CLI
+            hooks.
+          </p>
+          <div class="glass-card p-4">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Run Command</label>
+              <div class="input-group">
+                <input
+                  id="adv-cmd-input"
+                  type="text"
+                  class="form-control"
+                  placeholder="e.g. dmesg | tail -n 50"
+                />
+                <button id="adv-run-btn" class="btn btn-primary">Run</button>
+              </div>
+              <div class="form-check mt-2">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="adv-use-root"
+                />
+                <label
+                  class="form-check-label small text-muted"
+                  for="adv-use-root"
+                  >Run with root privileges (pkexec)</label
+                >
               </div>
             </div>
-          </div>
-          <div class="col-md-6">
-            <div class="glass-card p-4 h-100 d-flex align-items-center">
-              <i class="fa-brands fa-linux text-primary-gradient me-4" style="font-size: 40px;"></i>
-              <div>
-                <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.8rem;">Operating System</h6>
-                <h5 id="sys-os" class="fw-bold mb-0">Loading...</h5>
+
+            <div class="mb-2">
+              <label class="form-label fw-bold">Kernel Tunables (sysctl)</label>
+              <div class="d-flex gap-2">
+                <input
+                  id="sysctl-key"
+                  type="text"
+                  class="form-control"
+                  placeholder="vm.swappiness"
+                />
+                <input
+                  id="sysctl-value"
+                  type="text"
+                  class="form-control"
+                  placeholder="value"
+                />
+                <button id="sysctl-get" class="btn btn-outline-secondary">
+                  Get
+                </button>
+                <button id="sysctl-set" class="btn btn-outline-danger">
+                  Set
+                </button>
               </div>
             </div>
-          </div>
-          <div class="col-md-6">
-            <div class="glass-card p-4 h-100 d-flex align-items-center">
-              <i class="fas fa-code-branch text-primary-gradient me-4" style="font-size: 40px;"></i>
-              <div>
-                <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.8rem;">Kernel Version</h6>
-                <h5 id="sys-kernel" class="fw-bold mb-0">Loading...</h5>
-              </div>
+
+            <div>
+              <label class="form-label fw-bold">Output</label>
+              <pre
+                id="adv-output"
+                class="p-3"
+                style="
+                  height: 220px;
+                  overflow: auto;
+                  background: #0f172a;
+                  color: #d1fae5;
+                  border-radius: 6px;
+                "
+              >
+Ready.</pre
+              >
             </div>
           </div>
-          <div class="col-12">
-            <div class="glass-card p-4 d-flex align-items-center">
-              <i class="fas fa-network-wired text-primary-gradient me-4" style="font-size: 40px;"></i>
-              <div>
-                <h6 class="text-muted text-uppercase mb-1" style="font-size: 0.8rem;">Hostname</h6>
-                <h5 id="sys-host" class="fw-bold mb-0 text-break">Loading...</h5>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 advanced-only d-none">
-            <div class="glass-card p-4 mt-3">
-              <h6 class="fw-bold mb-2">Detailed Disks</h6>
-              <div id="adv-disks" class="text-muted small">Enable Advanced Mode to view disk partitions and usage.</div>
-            </div>
-          </div>
-          <div class="col-12 mt-3">
-            <div class="glass-card p-4">
-              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        </section>
+
+        <!-- YOUR PC TAB -->
+        <section id="your-pc" class="spa-tab d-none">
+          <h2 class="fw-bold mb-2">Your PC</h2>
+          <p class="text-muted mb-4">
+            Deep hardware specifications and telemetry.
+          </p>
+
+          <div class="row g-4">
+            <div class="col-md-6">
+              <div class="glass-card p-4 h-100 d-flex align-items-center">
+                <i
+                  class="fas fa-microchip text-primary-gradient me-4"
+                  style="font-size: 40px"
+                ></i>
                 <div>
-                  <h5 class="fw-bold mb-1"><i class="fas fa-server me-2 text-primary-gradient"></i> Operating System
-                    Updater</h5>
-                  <p class="text-muted mb-0" style="font-size: 0.95rem;">Queries your host machine's native package
-                    manager to explicitly fetch and install all system upgrades securely inside an embedded streaming
-                    architecture.</p>
-                </div>
-                <div class="d-flex gap-2">
-                  <button id="clear-os-console-btn" class="btn btn-outline-secondary fw-bold px-3 rounded-pill shadow-sm"
-                    style="transition: all 0.3s ease;">
-                    <i class="fas fa-eraser me-2"></i>Clear
-                  </button>
-                  <button id="run-os-update-btn" class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm"
-                    style="transition: all 0.3s ease;">
-                    <i class="fas fa-hammer me-2"></i>Upgrade OS
-                  </button>
+                  <h6
+                    class="text-muted text-uppercase mb-1"
+                    style="font-size: 0.8rem"
+                  >
+                    Processor
+                  </h6>
+                  <h5 id="sys-cpu" class="fw-bold mb-0">Loading...</h5>
                 </div>
               </div>
-
-              <!-- Native Output Terminal -->
-              <div id="os-terminal-container" class="mt-4 rounded-3 d-none position-relative overflow-hidden fade-in"
-                style="background-color: #0d1117; border: 1px solid #30363d; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
-                <div class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between"
-                  style="border-color: #30363d !important; background-color: #161b22;">
-                  <span class="text-muted fw-bold" style="font-size: 0.8rem; letter-spacing: 1px;">System Update</span>
+            </div>
+            <div class="col-md-6">
+              <div class="glass-card p-4 h-100 d-flex align-items-center">
+                <i
+                  class="fas fa-server text-primary-gradient me-4"
+                  style="font-size: 40px"
+                ></i>
+                <div>
+                  <h6
+                    class="text-muted text-uppercase mb-1"
+                    style="font-size: 0.8rem"
+                  >
+                    Logical Cores
+                  </h6>
+                  <h5 id="sys-cores" class="fw-bold mb-0">Loading...</h5>
                 </div>
-                <pre id="os-updater-console" class="p-3 mb-0 text-success"
-                  style="height: 350px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; line-height: 1.4; white-space: pre-wrap;"></pre>
-                <div id="os-terminal-loader" class="position-absolute bottom-0 end-0 p-3 d-none">
-                  <div class="spinner-grow spinner-grow-sm text-success" role="status"></div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="glass-card p-4 h-100 d-flex align-items-center">
+                <i
+                  class="fa-brands fa-linux text-primary-gradient me-4"
+                  style="font-size: 40px"
+                ></i>
+                <div>
+                  <h6
+                    class="text-muted text-uppercase mb-1"
+                    style="font-size: 0.8rem"
+                  >
+                    Operating System
+                  </h6>
+                  <h5 id="sys-os" class="fw-bold mb-0">Loading...</h5>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="glass-card p-4 h-100 d-flex align-items-center">
+                <i
+                  class="fas fa-code-branch text-primary-gradient me-4"
+                  style="font-size: 40px"
+                ></i>
+                <div>
+                  <h6
+                    class="text-muted text-uppercase mb-1"
+                    style="font-size: 0.8rem"
+                  >
+                    Kernel Version
+                  </h6>
+                  <h5 id="sys-kernel" class="fw-bold mb-0">Loading...</h5>
+                </div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="glass-card p-4 d-flex align-items-center">
+                <i
+                  class="fas fa-network-wired text-primary-gradient me-4"
+                  style="font-size: 40px"
+                ></i>
+                <div>
+                  <h6
+                    class="text-muted text-uppercase mb-1"
+                    style="font-size: 0.8rem"
+                  >
+                    Hostname
+                  </h6>
+                  <h5 id="sys-host" class="fw-bold mb-0 text-break">
+                    Loading...
+                  </h5>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 advanced-only d-none">
+              <div class="glass-card p-4 mt-3">
+                <h6 class="fw-bold mb-2">Detailed Disks</h6>
+                <div id="adv-disks" class="text-muted small">
+                  Enable Advanced Mode to view disk partitions and usage.
+                </div>
+              </div>
+            </div>
+            <div class="col-12 mt-3">
+              <div class="glass-card p-4">
+                <div
+                  class="d-flex align-items-center justify-content-between flex-wrap gap-3"
+                >
+                  <div>
+                    <h5 class="fw-bold mb-1">
+                      <i class="fas fa-server me-2 text-primary-gradient"></i>
+                      Operating System Updater
+                    </h5>
+                    <p class="text-muted mb-0" style="font-size: 0.95rem">
+                      Queries your host machine's native package manager to
+                      explicitly fetch and install all system upgrades securely
+                      inside an embedded streaming architecture.
+                    </p>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button
+                      id="clear-os-console-btn"
+                      class="btn btn-outline-secondary fw-bold px-3 rounded-pill shadow-sm"
+                      style="transition: all 0.3s ease"
+                    >
+                      <i class="fas fa-eraser me-2"></i>Clear
+                    </button>
+                    <button
+                      id="run-os-update-btn"
+                      class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm"
+                      style="transition: all 0.3s ease"
+                    >
+                      <i class="fas fa-hammer me-2"></i>Upgrade OS
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Native Output Terminal -->
+                <div
+                  id="os-terminal-container"
+                  class="mt-4 rounded-3 d-none position-relative overflow-hidden fade-in"
+                  style="
+                    background-color: #0d1117;
+                    border: 1px solid #30363d;
+                    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+                  "
+                >
+                  <div
+                    class="px-3 py-2 border-bottom d-flex align-items-center justify-content-between"
+                    style="
+                      border-color: #30363d !important;
+                      background-color: #161b22;
+                    "
+                  >
+                    <span
+                      class="text-muted fw-bold"
+                      style="font-size: 0.8rem; letter-spacing: 1px"
+                      >System Update</span
+                    >
+                  </div>
+                  <pre
+                    id="os-updater-console"
+                    class="p-3 mb-0 text-success"
+                    style="
+                      height: 350px;
+                      overflow-y: auto;
+                      font-family: &quot;Courier New&quot;, Courier, monospace;
+                      font-size: 0.85rem;
+                      line-height: 1.4;
+                      white-space: pre-wrap;
+                    "
+                  ></pre>
+                  <div
+                    id="os-terminal-loader"
+                    class="position-absolute bottom-0 end-0 p-3 d-none"
+                  >
+                    <div
+                      class="spinner-grow spinner-grow-sm text-success"
+                      role="status"
+                    ></div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
+    </div>
 
-    </main>
-    
-  </div>
-
-  <!-- Safety Action Modal -->
-  <div class="modal fade" id="safetyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content glass-card border-0 shadow-lg">
-        <div class="modal-header border-bottom-0 pb-0">
-          <h5 class="modal-title fw-bold text-danger"><i class="fas fa-triangle-exclamation me-2"></i>Root Execution
-            Warning</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body py-4">
-          <p id="safety-modal-msg" class="mb-0 text-muted" style="font-size: 0.95rem;">Are you absolutely sure you want
-            to configure this setting?</p>
-        </div>
-        <div class="modal-footer border-top-0 pt-0">
-          <button type="button" class="btn btn-secondary rounded-pill fw-medium" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-danger px-4 rounded-pill fw-bold" id="safety-modal-confirm">Proceed under
-            Sudo</button>
+    <!-- Safety Action Modal -->
+    <div class="modal fade" id="safetyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content glass-card border-0 shadow-lg">
+          <div class="modal-header border-bottom-0 pb-0">
+            <h5 class="modal-title fw-bold text-danger">
+              <i class="fas fa-triangle-exclamation me-2"></i>Root Execution
+              Warning
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body py-4">
+            <p
+              id="safety-modal-msg"
+              class="mb-0 text-muted"
+              style="font-size: 0.95rem"
+            >
+              Are you absolutely sure you want to configure this setting?
+            </p>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button
+              type="button"
+              class="btn btn-secondary rounded-pill fw-medium"
+              data-bs-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger px-4 rounded-pill fw-bold"
+              id="safety-modal-confirm"
+            >
+              Proceed under Sudo
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-
-</body>
-
+  </body>
 </html>

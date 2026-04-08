@@ -279,6 +279,22 @@ body.dark-mode .titlebar-button:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+.security-terminal {
+  background: #0f172a;
+  color: #d1fae5;
+  border-radius: 8px;
+  padding: 16px;
+  height: 240px;
+  overflow: auto;
+  font-size: 0.85rem;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+}
+
+body.dark-mode .security-terminal {
+  background: #0b1220;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
 /* Reduced Animations Override */
 body.no-animations * {
   animation: none !important;

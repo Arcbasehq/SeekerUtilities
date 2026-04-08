@@ -1,5 +1,8 @@
 use serde::Serialize;
+use std::env;
+use std::fs;
 use std::io::{BufRead, BufReader, Write};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use sysinfo::{System, Networks, Disks};
@@ -65,6 +68,20 @@ struct DiskInfo {
 struct UpdateResponse {
     status: String,
     title: String,
+    message: String,
+}
+
+#[derive(Serialize)]
+struct FirewallStatus {
+    engine: String,
+    status: String,
+    message: String,
+}
+
+#[derive(Serialize)]
+struct ServiceStatus {
+    service: String,
+    status: String,
     message: String,
 }
 
@@ -162,52 +179,63 @@ fn is_valid_sysctl_value(value: &str) -> bool {
             .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-' | '/' | ':'))
 }
 
+// System Cleaner
+
 #[tauri::command]
 async fn run_maintenance(state: State<'_, AppState>) -> Result<String, String> {
     let mem_before = {
-        let mut sys = state.sys.lock().map_err(|e| format!("Failed to lock system state: {}", e))?;
+        let mut sys = state
+            .sys
+            .lock()
+            .map_err(|e| format!("Failed to lock system state: {}", e))?;
         sys.refresh_memory();
         sys.used_memory()
     };
 
-    // --- STEP 1: Run both operations in a single pkexec ---
-    let mut pkexec = Command::new("pkexec")
-        .arg("sh")
+    // --- STEP 1: Drop caches (optional, requires root, so we skip safely if it fails) ---
+    let _ = Command::new("sync").status();
+
+    let drop_caches_result = Command::new("sh")
         .arg("-c")
-        .arg(
-            "tee /proc/sys/vm/drop_caches >/dev/null && \
-             find /tmp /var/tmp -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +"
-        )
-        .stdin(Stdio::piped())
+        .arg("echo 3 > /proc/sys/vm/drop_caches")
         .stdout(Stdio::null())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| format!("Failed to start pkexec: {}", e))?;
+        .stderr(Stdio::null())
+        .status();
 
-    {
-        let stdin = pkexec
-            .stdin
-            .as_mut()
-            .ok_or("Failed to open stdin for pkexec")?;
-        stdin
-            .write_all(b"3\n")
-            .map_err(|e| format!("Failed to write to pkexec stdin: {}", e))?;
-    }
+    // Ignore failure (will fail without root, which is fine)
+    let _ = drop_caches_result;
 
-    let output = pkexec
-        .wait_with_output()
-        .map_err(|e| format!("Failed to wait for pkexec process: {}", e))?;
+    // --- STEP 2: Clean temp directories safely (no shell expansion) ---
+    let temp_dirs = ["/tmp", "/var/tmp"];
+    let mut errors = Vec::new();
 
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!(
-            "Maintenance failed. Status: {:?}, Stderr: {}",
-            output.status, stderr
-        ));
+    for dir in temp_dirs {
+        let result = Command::new("find")
+            .arg(dir)
+            .arg("-mindepth")
+            .arg("1")
+            .arg("-maxdepth")
+            .arg("1")
+            .arg("-exec")
+            .arg("rm")
+            .arg("-rf")
+            .arg("--")
+            .arg("{}")
+            .arg("+")
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .status();
+
+        if let Err(e) = result {
+            errors.push(format!("Failed cleaning {}: {}", dir, e));
+        }
     }
 
     let mem_after = {
-        let mut sys = state.sys.lock().map_err(|e| format!("Failed to lock system state: {}", e))?;
+        let mut sys = state
+            .sys
+            .lock()
+            .map_err(|e| format!("Failed to lock system state: {}", e))?;
         sys.refresh_memory();
         sys.used_memory()
     };
@@ -217,6 +245,14 @@ async fn run_maintenance(state: State<'_, AppState>) -> Result<String, String> {
     } else {
         0
     };
+
+    if !errors.is_empty() {
+        return Err(format!(
+            "Maintenance completed with issues. Reclaimed {} MB. Errors: {}",
+            freed_mb,
+            errors.join(" | ")
+        ));
+    }
 
     Ok(format!(
         "System maintenance complete. Reclaimed {} MB. Temporary directories cleaned.",
@@ -357,14 +393,17 @@ fn stop_log_tail(state: State<'_, AppState>) -> Result<String, String> {
     Err("No diagnostics process running".into())
 }
 
+
 #[tauri::command]
 fn run_booster(state: State<'_, AppState>) -> Result<String, String> {
     let mem_before = {
-        let mut sys = state.sys.lock().unwrap();
+        let mut sys = state.sys.lock()
+            .map_err(|e| format!("Failed to lock system state: {}", e))?;
         sys.refresh_memory();
         sys.used_memory()
     };
-    
+
+    // Try to drop caches (will require proper polkit auth)
     let mut cache_drop = Command::new("pkexec")
         .arg("tee")
         .arg("/proc/sys/vm/drop_caches")
@@ -372,13 +411,15 @@ fn run_booster(state: State<'_, AppState>) -> Result<String, String> {
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| format!("Failed to retrieve permissions: {}", e))?;
+        .map_err(|e| format!("Failed to start privileged command: {}", e))?;
 
     {
         let stdin = cache_drop
             .stdin
             .as_mut()
             .ok_or("Failed to open stdin for booster command")?;
+
+        // This writes the value to drop caches (NOT a password)
         stdin
             .write_all(b"3\n")
             .map_err(|e| format!("Failed to write to booster command: {}", e))?;
@@ -390,23 +431,26 @@ fn run_booster(state: State<'_, AppState>) -> Result<String, String> {
 
     if !output.status.success() {
         return Err(format!(
-            "Action blocked or failed: {}",
+            "Permission denied or failed: {}",
             String::from_utf8_lossy(&output.stderr)
         ));
     }
 
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    // Give kernel a moment to update stats
+    std::thread::sleep(std::time::Duration::from_millis(300));
+
     let mem_after = {
-        let mut sys = state.sys.lock().unwrap();
+        let mut sys = state.sys.lock()
+            .map_err(|e| format!("Failed to lock system state: {}", e))?;
         sys.refresh_memory();
         sys.used_memory()
     };
 
-    let freed = if mem_before > mem_after { mem_before - mem_after } else { 0 };
+    let freed = mem_before.saturating_sub(mem_after);
     let freed_mb = freed as f64 / 1024.0 / 1024.0;
 
     Ok(format!(
-        "Successfully dropped cache! Automatically reclaimed {:.1} MB of RAM.",
+        "Cache drop completed. Approx. {:.1} MB reclaimed (may be temporary).",
         freed_mb
     ))
 }
@@ -772,6 +816,313 @@ fn set_sysctl(key: String, value: String) -> Result<String, String> {
     }
 }
 
+fn run_shell_command(cmd: &str) -> Result<String, String> {
+    let output = Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .output()
+        .map_err(|e| format!("Failed to run command: {}", e))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
+}
+
+fn run_root_command(cmd: &str) -> Result<String, String> {
+    let output = Command::new("pkexec")
+        .arg("sh")
+        .arg("-c")
+        .arg(cmd)
+        .output()
+        .map_err(|e| format!("Failed to run privileged command: {}", e))?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        Err(String::from_utf8_lossy(&output.stderr).trim().to_string())
+    }
+}
+
+fn detect_firewall_engine() -> String {
+    if Path::new("/usr/sbin/ufw").exists() || Path::new("/usr/bin/ufw").exists() {
+        return "ufw".into();
+    }
+    if Path::new("/usr/sbin/firewall-cmd").exists()
+        || Path::new("/usr/bin/firewall-cmd").exists()
+    {
+        return "firewalld".into();
+    }
+    if Path::new("/usr/sbin/iptables").exists() || Path::new("/usr/bin/iptables").exists() {
+        return "iptables".into();
+    }
+    "none".into()
+}
+
+fn detect_ssh_service() -> String {
+    if Path::new("/usr/bin/systemctl").exists() {
+        let sshd_unit = run_shell_command(r"systemctl list-unit-files --type=service | grep -E '^ssh\.service' || true");
+        if let Ok(out) = sshd_unit {
+            if !out.trim().is_empty() {
+                return "ssh".into();
+            }
+        }
+        let sshd_alt = run_shell_command(r"systemctl list-unit-files --type=service | grep -E '^sshd\.service' || true");
+        if let Ok(out) = sshd_alt {
+            if !out.trim().is_empty() {
+                return "sshd".into();
+            }
+        }
+    }
+    "ssh".into()
+}
+
+fn clear_dir_contents(path: &str) -> Result<usize, String> {
+    if !Path::new(path).exists() {
+        return Ok(0);
+    }
+    let mut removed = 0;
+    let entries = fs::read_dir(path).map_err(|e| format!("Failed to read {}: {}", path, e))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("Failed to read dir entry: {}", e))?;
+        let entry_path = entry.path();
+        if entry_path.is_dir() {
+            fs::remove_dir_all(&entry_path)
+                .map_err(|e| format!("Failed to remove directory: {}", e))?;
+        } else {
+            fs::remove_file(&entry_path).map_err(|e| format!("Failed to remove file: {}", e))?;
+        }
+        removed += 1;
+    }
+    Ok(removed)
+}
+
+#[tauri::command]
+fn get_firewall_status() -> FirewallStatus {
+    let engine = detect_firewall_engine();
+    if engine == "none" {
+        return FirewallStatus {
+            engine,
+            status: "unknown".into(),
+            message: "No firewall engine detected on this system.".into(),
+        };
+    }
+
+    let (status, message) = match engine.as_str() {
+        "ufw" => {
+            let res = run_shell_command("ufw status");
+            match res {
+                Ok(output) => {
+                    let state = if output.contains("Status: active") {
+                        "enabled"
+                    } else if output.contains("Status: inactive") {
+                        "disabled"
+                    } else {
+                        "unknown"
+                    };
+                    (state.into(), output)
+                }
+                Err(err) => ("unknown".into(), err),
+            }
+        }
+        "firewalld" => {
+            let res = run_shell_command("firewall-cmd --state");
+            match res {
+                Ok(output) => {
+                    let state = if output.contains("running") {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    };
+                    (state.into(), output)
+                }
+                Err(err) => ("unknown".into(), err),
+            }
+        }
+        "iptables" => {
+            let res = run_shell_command("iptables -L");
+            match res {
+                Ok(output) => ("enabled".into(), output),
+                Err(err) => ("unknown".into(), err),
+            }
+        }
+        _ => ("unknown".into(), "Unsupported firewall engine.".into()),
+    };
+
+    FirewallStatus {
+        engine,
+        status,
+        message,
+    }
+}
+
+#[tauri::command]
+fn set_firewall_enabled(enable: bool) -> Result<String, String> {
+    let engine = detect_firewall_engine();
+    if engine == "none" {
+        return Err("No firewall engine detected on this system.".into());
+    }
+
+    match engine.as_str() {
+        "ufw" => {
+            if enable {
+                run_root_command("ufw --force enable")?;
+                Ok("Firewall enabled (ufw).".into())
+            } else {
+                run_root_command("ufw disable")?;
+                Ok("Firewall disabled (ufw).".into())
+            }
+        }
+        "firewalld" => {
+            if enable {
+                run_root_command("systemctl enable --now firewalld")?;
+                Ok("Firewall enabled (firewalld).".into())
+            } else {
+                run_root_command("systemctl disable --now firewalld")?;
+                Ok("Firewall disabled (firewalld).".into())
+            }
+        }
+        "iptables" => {
+            if enable {
+                Ok("iptables detected. Use advanced rules to configure.".into())
+            } else {
+                Ok("iptables detected. Disable with caution via advanced rules.".into())
+            }
+        }
+        _ => Err("Unsupported firewall engine.".into()),
+    }
+}
+
+#[tauri::command]
+fn get_ssh_status() -> ServiceStatus {
+    let service = detect_ssh_service();
+    if !Path::new("/usr/bin/systemctl").exists() {
+        return ServiceStatus {
+            service,
+            status: "unknown".into(),
+            message: "systemctl not available on this host.".into(),
+        };
+    }
+
+    let cmd = format!("systemctl is-active {}.service", service);
+    let result = run_shell_command(&cmd);
+    match result {
+        Ok(out) => {
+            let status = if out.contains("active") { "enabled" } else { "disabled" };
+            ServiceStatus {
+                service,
+                status: status.into(),
+                message: out,
+            }
+        }
+        Err(err) => ServiceStatus {
+            service,
+            status: "unknown".into(),
+            message: err,
+        },
+    }
+}
+
+#[tauri::command]
+fn set_ssh_enabled(enable: bool) -> Result<String, String> {
+    let service = detect_ssh_service();
+    if !Path::new("/usr/bin/systemctl").exists() {
+        return Err("systemctl not available on this host.".into());
+    }
+    let action = if enable { "enable --now" } else { "disable --now" };
+    let cmd = format!("systemctl {} {}.service", action, service);
+    run_root_command(&cmd)?;
+    Ok(format!("SSH service updated: {}", service))
+}
+
+#[tauri::command]
+fn get_open_ports() -> Result<String, String> {
+    if Path::new("/usr/bin/ss").exists() || Path::new("/bin/ss").exists() {
+        return run_shell_command("ss -tulpen");
+    }
+    if Path::new("/usr/bin/lsof").exists() {
+        return run_shell_command("lsof -nP -iTCP -sTCP:LISTEN");
+    }
+    Err("No supported port inspection tool found (ss/lsof).".into())
+}
+
+#[tauri::command]
+fn flush_dns_cache() -> Result<String, String> {
+    if Path::new("/usr/bin/systemd-resolve").exists() {
+        run_root_command("systemd-resolve --flush-caches")?;
+        return Ok("systemd-resolve cache flushed.".into());
+    }
+    if Path::new("/usr/bin/resolvectl").exists() {
+        run_root_command("resolvectl flush-caches")?;
+        return Ok("resolvectl cache flushed.".into());
+    }
+    if Path::new("/etc/init.d/dnsmasq").exists() {
+        run_root_command("/etc/init.d/dnsmasq restart")?;
+        return Ok("dnsmasq restarted.".into());
+    }
+    Err("No DNS cache service detected.".into())
+}
+
+#[tauri::command]
+fn clear_recent_files() -> Result<String, String> {
+    let home = env::var("HOME").map_err(|_| "HOME not set".to_string())?;
+    let recent_dir = format!("{}/.local/share/recently-used.xbel", home);
+    let recent_dir_alt = format!("{}/.local/share/recently-used.xbel.bak", home);
+    let mut removed = 0usize;
+
+    if Path::new(&recent_dir).exists() {
+        fs::remove_file(&recent_dir).map_err(|e| format!("Failed to remove recent file list: {}", e))?;
+        removed += 1;
+    }
+    if Path::new(&recent_dir_alt).exists() {
+        fs::remove_file(&recent_dir_alt).map_err(|e| format!("Failed to remove backup list: {}", e))?;
+        removed += 1;
+    }
+
+    let recent_files_dir = format!("{}/.local/share/Recent", home);
+    let recent_removed = clear_dir_contents(&recent_files_dir)?;
+
+    Ok(format!(
+        "Cleared recent files metadata ({} entries).",
+        removed + recent_removed
+    ))
+}
+
+#[tauri::command]
+fn clear_thumbnail_cache() -> Result<String, String> {
+    let home = env::var("HOME").map_err(|_| "HOME not set".to_string())?;
+    let thumb_dir = format!("{}/.cache/thumbnails", home);
+    if !Path::new(&thumb_dir).exists() {
+        return Ok("No thumbnail cache found.".into());
+    }
+    let removed = clear_dir_contents(&thumb_dir)?;
+    if removed == 0 {
+        Ok("Thumbnail cache already empty.".into())
+    } else {
+        Ok("Thumbnail cache cleared.".into())
+    }
+}
+
+#[tauri::command]
+fn clear_shell_history() -> Result<String, String> {
+    let home = env::var("HOME").map_err(|_| "HOME not set".to_string())?;
+    let mut cleared = 0;
+    let history_files = [".bash_history", ".zsh_history", ".fish_history", ".ash_history"];
+    for file in history_files.iter() {
+        let path = format!("{}/{}", home, file);
+        if Path::new(&path).exists() {
+            fs::write(&path, "").map_err(|e| format!("Failed to wipe {}: {}", file, e))?;
+            cleared += 1;
+        }
+    }
+    if cleared == 0 {
+        Ok("No shell history files found.".into())
+    } else {
+        Ok(format!("Cleared {} shell history file(s).", cleared))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut sys = System::new();
@@ -806,10 +1157,18 @@ pub fn run() {
             send_telemetry,
             run_advanced_cmd,
             get_sysctl,
-            set_sysctl
-            ,
+            set_sysctl,
             start_log_tail,
-            stop_log_tail
+            stop_log_tail,
+            get_firewall_status,
+            set_firewall_enabled,
+            get_ssh_status,
+            set_ssh_enabled,
+            get_open_ports,
+            flush_dns_cache,
+            clear_recent_files,
+            clear_thumbnail_cache,
+            clear_shell_history
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
