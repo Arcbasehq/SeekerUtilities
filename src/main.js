@@ -1527,6 +1527,20 @@ function updateMemoryChart(usedMemory, totalMemory) {
 }
 
 window.addEventListener('beforeunload', () => {
+  // Destroy Chart.js instances to prevent memory leaks
+  if (cpuChart) {
+    cpuChart.destroy();
+    cpuChart = null;
+  }
+  if (memChart) {
+    memChart.destroy();
+    memChart = null;
+  }
+  if (netChart) {
+    netChart.destroy();
+    netChart = null;
+  }
+  
   if (dataPollInterval) {
     clearInterval(dataPollInterval);
     dataPollInterval = null;
